@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,27 @@ export default {
           'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
-        }
+        },
+        // Custom colors for Saaral Jewelry
+        gold: {
+          DEFAULT: '#B89F70',
+          light: '#d4c093',
+          dark: '#9a8459',
+        },
+        charcoal: {
+          DEFAULT: '#2D2D2D',
+          light: '#3a3a3a',
+          dark: '#1a1a1a',
+        },
+        offwhite: {
+          DEFAULT: '#FAF9F6',
+          dark: '#f0efe8',
+        },
+        softbrown: {
+          DEFAULT: '#5A4D41',
+          light: '#6d5d4e',
+          dark: '#483e35',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -86,20 +107,42 @@ export default {
           }
         },
         'fade-in': {
-          '0%': {
-            opacity: "0",
-            transform: "translateY(20px)",
+          from: {
+            opacity: '0',
+            transform: 'translateY(20px)',
           },
-          '100%': {
-            opacity: "1",
-            transform: "translateY(0)",
+          to: {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
+        'slide-in': {
+          from: {
+            opacity: '0',
+            transform: 'translateX(-30px)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'translateX(0)',
+          },
+        },
+        'zoom-in': {
+          from: {
+            opacity: '0',
+            transform: 'scale(0.95)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'scale(1)',
           },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.6s ease-out forwards'
+        'fade-in': 'fade-in 0.6s ease-out forwards',
+        'slide-in': 'slide-in 0.5s ease-out forwards',
+        'zoom-in': 'zoom-in 0.4s ease-out forwards'
       }
     }
   },
