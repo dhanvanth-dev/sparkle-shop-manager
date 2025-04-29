@@ -1,10 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight } from "lucide-react";
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export interface ProductCardProps {
   id: string;
@@ -12,73 +10,44 @@ export interface ProductCardProps {
   price: number;
   image: string;
   category: string;
-  gender?: 'men' | 'women' | 'unisex';
-  isSoldOut?: boolean;
+  gender?: string;
   isNewArrival?: boolean;
+  isSoldOut?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+export const ProductCard = ({
   id,
   name,
   price,
   image,
-  category,
-  gender,
-  isSoldOut = false,
-  isNewArrival = false,
-}) => {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  
+  isNewArrival,
+  isSoldOut
+}: ProductCardProps) => {
   return (
-    <Card className="overflow-hidden group hover-lift">
-      <CardContent className="p-0">
-        <div className="relative">
-          {!imageLoaded && (
-            <div className="aspect-square w-full">
-              <Skeleton className="h-full w-full rounded-none" />
-            </div>
-          )}
+    <Link to={`/product/${id}`}>
+      <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-lg relative">
+        <div className="relative aspect-square overflow-hidden">
           <img
             src={image}
             alt={name}
-            className={`w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105 ${
-              imageLoaded ? '' : 'hidden'
-            }`}
-            onLoad={() => setImageLoaded(true)}
-            loading="lazy"
+            className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
           />
-          
-          {/* Status Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {isNewArrival && (
-              <Badge className="bg-gold text-white border-none">New</Badge>
-            )}
-            {isSoldOut && (
-              <Badge className="bg-charcoal-dark text-white border-none">Sold Out</Badge>
-            )}
-          </div>
-          
-          {/* Gender Badge */}
-          {gender && gender !== 'unisex' && (
-            <Badge className="absolute top-3 right-3 bg-white/80 text-charcoal">
-              {gender === 'men' ? "Men's" : "Women's"}
-            </Badge>
+          {isNewArrival && (
+            <Badge className="absolute top-2 left-2 bg-gold hover:bg-gold">New</Badge>
+          )}
+          {isSoldOut && (
+            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+              <Badge className="bg-charcoal text-white hover:bg-charcoal px-3 py-1 text-sm">Sold Out</Badge>
+            </div>
           )}
         </div>
-        
-        <div className="p-4">
-          <h3 className="font-medium text-lg text-charcoal mb-1 transition-colors group-hover:text-gold">{name}</h3>
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-charcoal-dark font-semibold">₹{price.toLocaleString()}</span>
-            <Link
-              to={`/product/${id}`}
-              className="text-gold flex items-center gap-1 text-sm font-medium hover:underline"
-            >
-              View Details <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        <CardContent className="p-4">
+          <h3 className="font-medium text-lg text-charcoal line-clamp-1">{name}</h3>
+        </CardContent>
+        <CardFooter className="pt-0 pb-4 px-4">
+          <p className="text-gold font-medium">${(price / 100).toFixed(2)}</p>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 };

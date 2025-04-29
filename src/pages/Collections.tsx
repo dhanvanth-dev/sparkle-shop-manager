@@ -1,130 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import { ProductCard, ProductCardProps } from '@/components/ui/product-card';
+import { ProductCard } from '@/components/ui/product-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Mock data - will be replaced with CMS data
-const mockProducts: ProductCardProps[] = [
-  // Earrings
-  {
-    id: 'e1',
-    name: 'Pearl Drop Earrings',
-    price: 18500,
-    image: 'https://images.unsplash.com/photo-1535556116002-6281ff3e9f36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=781&q=80',
-    category: 'earrings',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: 'e2',
-    name: 'Diamond Stud Earrings',
-    price: 24000,
-    image: 'https://images.unsplash.com/photo-1689928570219-066d210b9b49?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    category: 'earrings',
-    gender: 'women'
-  },
-  {
-    id: 'e3',
-    name: 'Gold Hoop Earrings',
-    price: 16500,
-    image: 'https://images.unsplash.com/photo-1630020433642-3022b57b05fe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    category: 'earrings',
-    gender: 'women'
-  },
-  
-  // Chains
-  {
-    id: 'c1',
-    name: 'Classic Gold Chain',
-    price: 42000,
-    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=686&q=80',
-    category: 'chains',
-    gender: 'men',
-    isNewArrival: true
-  },
-  {
-    id: 'c2',
-    name: 'Silver Link Chain',
-    price: 28000,
-    image: 'https://images.unsplash.com/photo-1588444650733-d98404455ed1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    category: 'chains',
-    gender: 'men'
-  },
-  {
-    id: 'c3',
-    name: 'Pearl Pendant Chain',
-    price: 36000,
-    image: 'https://images.unsplash.com/photo-1585367471632-1ef13dae1048?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    category: 'chains',
-    gender: 'women'
-  },
-  
-  // Bracelets
-  {
-    id: 'b1',
-    name: 'Ruby Embrace Bracelet',
-    price: 36000,
-    image: 'https://images.unsplash.com/photo-1616177635753-920dee141885?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80',
-    category: 'bracelets',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: 'b2',
-    name: 'Gold Link Bracelet',
-    price: 32000,
-    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'bracelets',
-    gender: 'men'
-  },
-  {
-    id: 'b3',
-    name: 'Diamond Tennis Bracelet',
-    price: 64000,
-    image: 'https://images.unsplash.com/photo-1602752465623-7e0a0e08d0b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    category: 'bracelets',
-    gender: 'women',
-    isSoldOut: true
-  },
-  
-  // Rings
-  {
-    id: 'r1',
-    name: 'Diamond Solitaire Ring',
-    price: 48000,
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'rings',
-    gender: 'women'
-  },
-  {
-    id: 'r2',
-    name: 'Men\'s Gold Band',
-    price: 28000,
-    image: 'https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'rings',
-    gender: 'men'
-  },
-  {
-    id: 'r3',
-    name: 'Emerald Royal Ring',
-    price: 56000,
-    image: 'https://images.unsplash.com/photo-1608042314453-ae338d80c427?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'rings',
-    gender: 'women',
-    isNewArrival: true,
-    isSoldOut: true
-  }
-];
+import { getProducts } from '@/services/productService';
+import { Product } from '@/types/product';
 
 const categories = [
   { value: 'all', label: 'All Categories' },
   { value: 'earrings', label: 'Earrings' },
   { value: 'chains', label: 'Chains' },
   { value: 'bracelets', label: 'Bracelets' },
-  { value: 'rings', label: 'Rings' }
+  { value: 'rings', label: 'Rings' },
+  { value: 'necklaces', label: 'Necklaces' },
+  { value: 'pendants', label: 'Pendants' },
 ];
 
 const genders = [
@@ -136,20 +27,23 @@ const genders = [
 
 const Collections: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<ProductCardProps[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductCardProps[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedGender, setSelectedGender] = useState('all');
   
   useEffect(() => {
-    // Simulate API call to CMS
-    const timer = setTimeout(() => {
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
-      setLoading(false);
-    }, 800);
+    const fetchProducts = async () => {
+      try {
+        const data = await getProducts();
+        setProducts(data);
+        setFilteredProducts(data);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchProducts();
   }, []);
   
   useEffect(() => {
@@ -249,7 +143,16 @@ const Collections: React.FC = () => {
                   className="animate-fade-in" 
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <ProductCard {...product} />
+                  <ProductCard 
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    image={product.image_url || 'https://placehold.co/400x400?text=No+Image'}
+                    category={product.category}
+                    gender={product.gender}
+                    isNewArrival={product.is_new_arrival}
+                    isSoldOut={product.is_sold_out}
+                  />
                 </div>
               ))}
             </div>

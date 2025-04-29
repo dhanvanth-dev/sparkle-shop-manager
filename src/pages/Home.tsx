@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card } from '@/components/ui/card';
-import { ProductCard, ProductCardProps } from '@/components/ui/product-card';
+import { ProductCard } from '@/components/ui/product-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -13,74 +13,8 @@ import {
   CarouselPrevious,
   CarouselNext
 } from '@/components/ui/carousel';
-
-// Mock data - will be replaced with CMS data
-const mockFeaturedProducts: ProductCardProps[] = [
-  {
-    id: '1',
-    name: 'Gold Heritage Necklace',
-    price: 28500,
-    image: 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80',
-    category: 'necklaces',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: '2',
-    name: 'Diamond Studded Ring',
-    price: 32000,
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'rings',
-    gender: 'unisex',
-    isNewArrival: true
-  },
-  {
-    id: '3',
-    name: 'Pearl Elegance Earrings',
-    price: 18500,
-    image: 'https://images.unsplash.com/photo-1535556116002-6281ff3e9f36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=781&q=80',
-    category: 'earrings',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: '4',
-    name: 'Classic Gold Chain',
-    price: 42000,
-    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=686&q=80',
-    category: 'chains',
-    gender: 'men',
-    isNewArrival: true
-  },
-  {
-    id: '5',
-    name: 'Ruby Embrace Bracelet',
-    price: 36000,
-    image: 'https://images.unsplash.com/photo-1616177635753-920dee141885?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80',
-    category: 'bracelets',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: '6',
-    name: 'Sapphire Studded Pendant',
-    price: 24000,
-    image: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80',
-    category: 'pendants',
-    gender: 'women',
-    isNewArrival: true
-  },
-  {
-    id: '7',
-    name: 'Emerald Royal Ring',
-    price: 56000,
-    image: 'https://images.unsplash.com/photo-1608042314453-ae338d80c427?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'rings',
-    gender: 'women',
-    isNewArrival: true,
-    isSoldOut: true
-  }
-];
+import { getProducts } from '@/services/productService';
+import { Product } from '@/types/product';
 
 const heroSlides = [
   {
@@ -105,16 +39,19 @@ const heroSlides = [
 
 const Home: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [latestProducts, setLatestProducts] = useState<ProductCardProps[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
   
   useEffect(() => {
-    // Simulate API call to CMS
-    const timer = setTimeout(() => {
-      setLatestProducts(mockFeaturedProducts);
-      setLoading(false);
-    }, 800);
+    const fetchProducts = async () => {
+      try {
+        const products = await getProducts();
+        setLatestProducts(products);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchProducts();
   }, []);
   
   return (
@@ -175,13 +112,22 @@ const Home: React.FC = () => {
                     </div>
                   </Card>
                 ))
-              : latestProducts.map((product, index) => (
+              : latestProducts.slice(0, 8).map((product, index) => (
                   <div 
                     key={product.id} 
                     className={`animate-fade-in`} 
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <ProductCard {...product} />
+                    <ProductCard 
+                      id={product.id}
+                      name={product.name}
+                      price={product.price}
+                      image={product.image_url || 'https://placehold.co/400x400?text=No+Image'}
+                      category={product.category}
+                      gender={product.gender}
+                      isNewArrival={product.is_new_arrival}
+                      isSoldOut={product.is_sold_out}
+                    />
                   </div>
                 ))
             }
