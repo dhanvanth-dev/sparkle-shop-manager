@@ -95,7 +95,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
               <Input
                 id="name"
                 {...register('name', { required: 'Product name is required' })}
-                error={errors.name?.message}
               />
               {errors.name && (
                 <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
@@ -111,7 +110,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                   required: 'Price is required',
                   min: { value: 0, message: 'Price must be positive' },
                 })}
-                error={errors.price?.message}
               />
               {errors.price && (
                 <p className="text-sm text-red-500 mt-1">{errors.price.message}</p>
