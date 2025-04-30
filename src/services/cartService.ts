@@ -1,26 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Product } from '@/types/product';
-
-export interface CartItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  quantity: number;
-  created_at: string;
-  updated_at: string;
-  product: Product;
-}
-
-export interface SavedItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  created_at: string;
-  expires_at: string;
-  product: Product;
-}
+import { Product, CartItem, SavedItem } from '@/types/product';
 
 // Cart functions
 export async function getCartItems() {
@@ -37,7 +18,7 @@ export async function getCartItems() {
       throw error;
     }
 
-    return data as CartItem[];
+    return data as unknown as CartItem[];
   } catch (error: any) {
     console.error('Error fetching cart items:', error);
     toast.error(error.message || 'Failed to load cart items');
@@ -65,7 +46,7 @@ export async function addToCart(productId: string, quantity = 1) {
       const { error } = await supabase
         .from('cart_items')
         .update({ 
-          quantity: Math.min(existingItem.quantity + quantity, 10), // Enforce max quantity 
+          quantity: Math.min((existingItem as unknown as CartItem).quantity + quantity, 10), // Enforce max quantity 
           updated_at: new Date().toISOString() 
         })
         .eq('id', existingItem.id);
@@ -153,7 +134,7 @@ export async function getSavedItems() {
       throw error;
     }
 
-    return data as SavedItem[];
+    return data as unknown as SavedItem[];
   } catch (error: any) {
     console.error('Error fetching saved items:', error);
     toast.error(error.message || 'Failed to load saved items');

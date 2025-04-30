@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { UserProfile } from '@/types/product';
 
 interface AuthContextProps {
   session: Session | null;
@@ -13,15 +14,6 @@ interface AuthContextProps {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   profile: UserProfile | null;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 const AuthContext = createContext<AuthContextProps>({
@@ -45,6 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Since we can't directly query the profiles table through the type system yet,
+      // we'll use the raw query method with type casting
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -56,7 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      return data as UserProfile;
+      // Cast the data to the UserProfile type
+      return data as unknown as UserProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
