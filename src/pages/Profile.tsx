@@ -19,7 +19,7 @@ interface ProfileFormData {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading, profile } = useAuth();
+  const { user, loading, profile, refreshProfile } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
@@ -40,18 +40,28 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
+      // Use rpc call as a workaround for type issues with new tables
       const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.fullName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+        .rpc('update_user_profile', {
+          user_id: user.id,
+          new_full_name: data.fullName
+        });
 
       if (error) {
-        throw error;
+        // Fall back to direct update with type assertion if rpc fails
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: data.fullName,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq('id', user.id);
+
+        if (updateError) throw updateError;
       }
 
+      // Refresh the profile data after update
+      await refreshProfile(user.id);
       toast.success('Profile updated successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile');

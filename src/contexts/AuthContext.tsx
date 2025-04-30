@@ -14,6 +14,7 @@ interface AuthContextProps {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   profile: UserProfile | null;
+  refreshProfile: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextProps>({
   signInWithGoogle: async () => {},
   signOut: async () => {},
   profile: null,
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -37,20 +39,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Since we can't directly query the profiles table through the type system yet,
-      // we'll use the raw query method with type casting
+      // Use rpc call as a workaround for type issues with new tables
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+        .rpc('get_profile_by_id', { user_id: userId });
 
       if (error) {
         console.error('Error fetching profile:', error);
         return null;
       }
 
-      // Cast the data to the UserProfile type
+      // If no data returned from rpc, fall back to direct query with type casting
+      if (!data) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile directly:', profileError);
+          return null;
+        }
+
+        return profileData as unknown as UserProfile;
+      }
+
       return data as unknown as UserProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -189,6 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     signOut,
     profile,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

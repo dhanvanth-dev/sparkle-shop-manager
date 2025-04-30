@@ -6,16 +6,22 @@ import { Product, CartItem, SavedItem } from '@/types/product';
 // Cart functions
 export async function getCartItems() {
   try {
+    // Use rpc call as a workaround for type issues with new tables
     const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        *,
-        product:products(*)
-      `)
-      .order('created_at', { ascending: false });
+      .rpc('get_cart_items_with_products');
 
     if (error) {
-      throw error;
+      // Fall back to direct query with type assertion if rpc fails
+      const { data: cartData, error: cartError } = await supabase
+        .from('cart_items')
+        .select(`
+          *,
+          product:products(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (cartError) throw cartError;
+      return cartData as unknown as CartItem[];
     }
 
     return data as unknown as CartItem[];
@@ -35,40 +41,78 @@ export async function addToCart(productId: string, quantity = 1) {
     }
 
     // Check if item is already in cart
-    const { data: existingItem } = await supabase
-      .from('cart_items')
-      .select()
-      .eq('product_id', productId)
-      .single();
+    const { data: existingItem, error: checkError } = await supabase
+      .rpc('get_cart_item', { product_id_param: productId });
 
-    if (existingItem) {
-      // Update quantity
-      const { error } = await supabase
+    if (checkError) {
+      // Fall back to direct query with type assertion if rpc fails
+      const { data: cartItem, error: cartError } = await supabase
         .from('cart_items')
-        .update({ 
-          quantity: Math.min((existingItem as unknown as CartItem).quantity + quantity, 10), // Enforce max quantity 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', existingItem.id);
+        .select()
+        .eq('product_id', productId)
+        .single();
+
+      if (cartError && cartError.code !== 'PGRST116') throw cartError; // Not found error is ok
+      
+      if (cartItem) {
+        // Update quantity
+        const { error } = await supabase
+          .rpc('update_cart_item_quantity', {
+            cart_item_id: cartItem.id,
+            new_quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10)
+          });
+
+        if (error) {
+          // Fall back to direct update with type assertion if rpc fails
+          const { error: updateError } = await supabase
+            .from('cart_items')
+            .update({
+              quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10),
+              updated_at: new Date().toISOString()
+            } as any)
+            .eq('id', cartItem.id);
+
+          if (updateError) throw updateError;
+        }
+        
+        toast.success('Cart updated successfully');
+        return true;
+      }
+    } else if (existingItem) {
+      // Update quantity using RPC
+      const { error } = await supabase
+        .rpc('update_cart_item_quantity', {
+          cart_item_id: existingItem.id,
+          new_quantity: Math.min(existingItem.quantity + quantity, 10)
+        });
 
       if (error) throw error;
       
       toast.success('Cart updated successfully');
       return true;
-    } else {
-      // Add new item
+    }
+
+    // Add new item
+    const { error: insertError } = await supabase
+      .rpc('add_to_cart', {
+        product_id_param: productId,
+        quantity_param: quantity
+      });
+
+    if (insertError) {
+      // Fall back to direct insert with type assertion if rpc fails
       const { error } = await supabase
         .from('cart_items')
         .insert({
           product_id: productId,
           quantity,
-        });
+        } as any);
 
       if (error) throw error;
-      
-      toast.success('Item added to cart');
-      return true;
     }
+    
+    toast.success('Item added to cart');
+    return true;
   } catch (error: any) {
     console.error('Error adding to cart:', error);
     toast.error(error.message || 'Failed to add item to cart');
@@ -83,15 +127,25 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
       return false;
     }
 
+    // Use rpc call as a workaround for type issues with new tables
     const { error } = await supabase
-      .from('cart_items')
-      .update({ 
-        quantity, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', cartItemId);
+      .rpc('update_cart_item_quantity', {
+        cart_item_id: cartItemId,
+        new_quantity: quantity
+      });
 
-    if (error) throw error;
+    if (error) {
+      // Fall back to direct update with type assertion if rpc fails
+      const { error: updateError } = await supabase
+        .from('cart_items')
+        .update({ 
+          quantity, 
+          updated_at: new Date().toISOString() 
+        } as any)
+        .eq('id', cartItemId);
+
+      if (updateError) throw updateError;
+    }
     
     return true;
   } catch (error: any) {
@@ -103,12 +157,21 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
 
 export async function removeFromCart(cartItemId: string) {
   try {
+    // Use rpc call as a workaround for type issues with new tables
     const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', cartItemId);
+      .rpc('remove_from_cart', {
+        cart_item_id: cartItemId
+      });
 
-    if (error) throw error;
+    if (error) {
+      // Fall back to direct delete with type assertion if rpc fails
+      const { error: deleteError } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', cartItemId);
+
+      if (deleteError) throw deleteError;
+    }
     
     toast.success('Item removed from cart');
     return true;
@@ -122,16 +185,22 @@ export async function removeFromCart(cartItemId: string) {
 // Saved items functions
 export async function getSavedItems() {
   try {
+    // Use rpc call as a workaround for type issues with new tables
     const { data, error } = await supabase
-      .from('saved_items')
-      .select(`
-        *,
-        product:products(*)
-      `)
-      .order('created_at', { ascending: false });
+      .rpc('get_saved_items_with_products');
 
     if (error) {
-      throw error;
+      // Fall back to direct query with type assertion if rpc fails
+      const { data: savedData, error: savedError } = await supabase
+        .from('saved_items')
+        .select(`
+          *,
+          product:products(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (savedError) throw savedError;
+      return savedData as unknown as SavedItem[];
     }
 
     return data as unknown as SavedItem[];
@@ -150,25 +219,45 @@ export async function addToSavedItems(productId: string) {
       throw new Error('Authentication required');
     }
 
-    // Check if item is already saved
-    const { data: existingItem } = await supabase
-      .from('saved_items')
-      .select()
-      .eq('product_id', productId)
-      .single();
+    // Use rpc call as a workaround for type issues with new tables
+    const { data: existingItem, error: checkError } = await supabase
+      .rpc('get_saved_item', { product_id_param: productId });
 
-    if (existingItem) {
+    if (checkError) {
+      // Fall back to direct query with type assertion if rpc fails
+      const { data: savedItem, error: savedError } = await supabase
+        .from('saved_items')
+        .select()
+        .eq('product_id', productId)
+        .single();
+
+      if (savedError && savedError.code !== 'PGRST116') throw savedError; // Not found error is ok
+
+      if (savedItem) {
+        toast.info('Item is already in your saved items');
+        return true;
+      }
+    } else if (existingItem) {
       toast.info('Item is already in your saved items');
       return true;
     }
 
-    const { error } = await supabase
-      .from('saved_items')
-      .insert({
-        product_id: productId,
+    // Add new item
+    const { error: insertError } = await supabase
+      .rpc('add_to_saved_items', {
+        product_id_param: productId
       });
 
-    if (error) throw error;
+    if (insertError) {
+      // Fall back to direct insert with type assertion if rpc fails
+      const { error } = await supabase
+        .from('saved_items')
+        .insert({
+          product_id: productId,
+        } as any);
+
+      if (error) throw error;
+    }
     
     toast.success('Item saved for later');
     return true;
@@ -181,12 +270,21 @@ export async function addToSavedItems(productId: string) {
 
 export async function removeFromSavedItems(savedItemId: string) {
   try {
+    // Use rpc call as a workaround for type issues with new tables
     const { error } = await supabase
-      .from('saved_items')
-      .delete()
-      .eq('id', savedItemId);
+      .rpc('remove_from_saved_items', {
+        saved_item_id: savedItemId
+      });
 
-    if (error) throw error;
+    if (error) {
+      // Fall back to direct delete with type assertion if rpc fails
+      const { error: deleteError } = await supabase
+        .from('saved_items')
+        .delete()
+        .eq('id', savedItemId);
+
+      if (deleteError) throw deleteError;
+    }
     
     toast.success('Item removed from saved items');
     return true;

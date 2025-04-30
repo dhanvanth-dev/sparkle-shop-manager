@@ -1,1 +1,31 @@
+
+# This file is used to configure your Supabase project.
+# For more information, please see: https://supabase.com/docs/guides/getting-started/local-development
+
 project_id = "hgdcneupkjiidjahpszh"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[functions]
+[functions.get_profile_by_id]
+verify_jwt = true
+
+[functions.update_user_profile]
+verify_jwt = true
+
+[functions.get_cart_items_with_products]
+verify_jwt = true
+
+[functions.get_saved_items_with_products]
+verify_jwt = true
