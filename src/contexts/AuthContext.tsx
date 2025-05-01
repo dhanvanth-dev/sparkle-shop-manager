@@ -116,16 +116,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async (id: string) => {
-    // Cast the parameters to any type to bypass TypeScript checks for RPC calls
-    const params: any = { user_id: id };
-    
-    // Use rpc call with type assertion
-    const { data } = await supabase.rpc('get_profile_by_id', params);
+    try {
+      // Cast the parameters to any type to bypass TypeScript checks for RPC calls
+      const { data, error } = await supabase.rpc(
+        'get_profile_by_id', 
+        { user_id: id } as { user_id: string }
+      );
 
-    // Check if data exists and is an array with entries
-    if (data && Array.isArray(data) && data.length > 0) {
-      setProfile(data[0]);
-    } else {
+      // Check if data exists and is an array with entries
+      if (data && Array.isArray(data) && data.length > 0) {
+        setProfile(data[0]);
+      } else {
+        console.error('No profile data found or error:', error);
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
       setProfile(null);
     }
   };

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, Product } from '@/types/product';
 
@@ -10,18 +9,23 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   
   if (!user?.user) return [];
 
-  // Create params object and cast to any
-  const params: any = { user_id: user.user.id };
-  
-  // First try using the RPC function with type assertion
-  const { data, error } = await supabase.rpc('get_cart_items_with_products', params);
+  try {
+    // First try using the RPC function with proper type assertion
+    const { data, error } = await supabase.rpc(
+      'get_cart_items_with_products', 
+      { user_id: user.user.id } as { user_id: string }
+    );
 
-  if (error || !data) {
-    console.error('Error fetching cart items:', error);
+    if (error || !data) {
+      console.error('Error fetching cart items:', error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getCartItems:', error);
     return [];
   }
-
-  return data;
 };
 
 /**
