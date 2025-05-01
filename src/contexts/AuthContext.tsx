@@ -117,11 +117,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (id: string) => {
     try {
-      // Cast the parameters to any type to bypass TypeScript checks for RPC calls
+      // Use proper type casting for the RPC call
       const { data, error } = await supabase.rpc(
         'get_profile_by_id', 
-        { user_id: id } as { user_id: string }
-      );
+        { user_id: id }
+      ) as unknown as { data: UserProfile[], error: any };
 
       // Check if data exists and is an array with entries
       if (data && Array.isArray(data) && data.length > 0) {
