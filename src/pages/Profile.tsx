@@ -45,7 +45,7 @@ const Profile: React.FC = () => {
         .rpc('update_user_profile', {
           user_id: user.id,
           new_full_name: data.fullName
-        }) as any;
+        } as any);
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails

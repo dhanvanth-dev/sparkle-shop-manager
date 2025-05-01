@@ -99,8 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async (id: string) => {
-    // Use rpc call as a workaround for type issues with new tables
-    const { data } = await supabase.rpc('get_profile_by_id', { user_id: id }) as any;
+    // Use rpc call as a workaround for type issues
+    const { data } = await supabase.rpc('get_profile_by_id', { 
+      user_id: id 
+    } as any);
 
     if (data && data.length > 0) {
       setProfile(data[0]);
