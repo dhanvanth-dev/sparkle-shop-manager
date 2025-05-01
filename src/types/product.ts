@@ -42,3 +42,10 @@ export interface SavedItem {
   expires_at: string;
   product: Product;
 }
+
+// Schema validation types
+export const ProductCategories = ['earrings', 'chains', 'bracelets', 'rings', 'necklaces', 'pendants'] as const;
+export type ProductCategory = typeof ProductCategories[number];
+
+export const ProductGenders = ['women', 'men', 'unisex'] as const;
+export type ProductGender = typeof ProductGenders[number];

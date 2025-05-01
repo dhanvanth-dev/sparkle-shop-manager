@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LucideLoader2, Trash2, Heart, Plus, Minus, AlertTriangle, ShoppingBag } from 'lucide-react';
@@ -7,7 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
-import { CartItem, getCartItems, updateCartItemQuantity, removeFromCart, addToSavedItems } from '@/services/cartService';
+import { CartItem } from '@/types/product';
+import { 
+  getCartItems, 
+  updateCartItemQuantity, 
+  removeFromCart,
+  addToSavedItems 
+} from '@/services/cartService';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
