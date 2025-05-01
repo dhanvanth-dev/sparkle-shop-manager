@@ -1,135 +1,92 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductFormData, assertIsProduct, assertIsProductArray } from '@/types/product';
-import { toast } from 'sonner';
 
-export async function getProducts(): Promise<Product[]> {
+/**
+ * Get all products
+ */
+export const getProducts = async (): Promise<Product[]> => {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any;
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching products:', error);
-    toast.error('Failed to load products');
     return [];
   }
 
-  try {
-    assertIsProductArray(data || []);
-    return data || [];
-  } catch (e) {
-    console.error('Type assertion error:', e);
-    // Return data with type assertion for fallback
-    return (data || []) as Product[];
-  }
-}
+  // Assert the type safety
+  assertIsProductArray(data);
+  return data as Product[];
+};
 
-export async function getProductById(id: string): Promise<Product | null> {
+/**
+ * Get a product by ID
+ */
+export const getProductById = async (id: string): Promise<Product | null> => {
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('id', id)
-    .single();
+    .single() as any;
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching product:', error);
-    toast.error('Failed to load product details');
     return null;
   }
 
-  try {
-    assertIsProduct(data);
-    return data;
-  } catch (e) {
-    console.error('Type assertion error:', e);
-    // Return data with type assertion for fallback
-    return data as Product;
-  }
-}
+  assertIsProduct(data);
+  return data as Product;
+};
 
-export async function createProduct(product: ProductFormData): Promise<Product | null> {
+/**
+ * Create a new product
+ */
+export const createProduct = async (formData: ProductFormData): Promise<Product | null> => {
   const { data, error } = await supabase
     .from('products')
-    .insert(product)
+    .insert(formData)
     .select()
-    .single();
-
-  if (error) {
+    .single() as any;
+    
+  if (error || !data) {
     console.error('Error creating product:', error);
-    toast.error('Failed to create product');
     return null;
   }
 
-  toast.success('Product created successfully');
-  try {
-    assertIsProduct(data);
-    return data;
-  } catch (e) {
-    console.error('Type assertion error:', e);
-    // Return data with type assertion for fallback
-    return data as Product;
-  }
-}
+  assertIsProduct(data);
+  return data as Product;
+};
 
-export async function updateProduct(id: string, product: ProductFormData): Promise<Product | null> {
+/**
+ * Update a product
+ */
+export const updateProduct = async (id: string, formData: ProductFormData): Promise<Product | null> => {
   const { data, error } = await supabase
     .from('products')
-    .update(product)
+    .update(formData)
     .eq('id', id)
     .select()
-    .single();
-
-  if (error) {
+    .single() as any;
+  
+  if (error || !data) {
     console.error('Error updating product:', error);
-    toast.error('Failed to update product');
     return null;
   }
 
-  toast.success('Product updated successfully');
-  try {
-    assertIsProduct(data);
-    return data;
-  } catch (e) {
-    console.error('Type assertion error:', e);
-    // Return data with type assertion for fallback
-    return data as Product;
-  }
-}
+  assertIsProduct(data);
+  return data as Product;
+};
 
-export async function deleteProduct(id: string): Promise<boolean> {
+/**
+ * Delete a product
+ */
+export const deleteProduct = async (id: string): Promise<boolean> => {
   const { error } = await supabase
     .from('products')
     .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Error deleting product:', error);
-    toast.error('Failed to delete product');
-    return false;
-  }
-
-  toast.success('Product deleted successfully');
-  return true;
-}
-
-export async function uploadProductImage(file: File): Promise<string | null> {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random()}.${fileExt}`;
-  const filePath = `${fileName}`;
-
-  const { data, error } = await supabase.storage
-    .from('product_images')
-    .upload(filePath, file);
-
-  if (error) {
-    console.error('Error uploading image:', error);
-    toast.error('Failed to upload image');
-    return null;
-  }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('product_images')
-    .getPublicUrl(data.path);
-
-  return publicUrl;
-}
+    .eq('id', id) as any;
+  
+  return !error;
+};

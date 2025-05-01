@@ -1,144 +1,104 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { SavedItem } from '@/types/product';
-import { addToCart, removeFromCart } from './cartService';
+import { addToCart } from './cartService';
 
-// Saved items functions
-export async function getSavedItems() {
-  try {
-    // Use rpc call as a workaround for type issues with new tables
-    const { data, error } = await supabase
-      .rpc('get_saved_items_with_products') as any;
+/**
+ * Get all saved items for the current user
+ */
+export const getSavedItems = async (): Promise<SavedItem[]> => {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user?.user) return [];
 
-    if (error) {
-      // Fall back to direct query with type assertion if rpc fails
-      console.error('RPC error, falling back to direct query:', error);
-      
-      const { data: savedData, error: savedError } = await supabase
-        .from('saved_items' as any)
-        .select(`
-          *,
-          product:products(*)
-        `) as any;
+  // Using RPC call as a workaround for type issues
+  const { data, error } = await supabase.rpc('get_saved_items_with_products', {
+    user_id: user.user.id
+  }) as any;
 
-      if (savedError) throw savedError;
-      return savedData as unknown as SavedItem[];
-    }
-
-    return data as unknown as SavedItem[];
-  } catch (error: any) {
+  if (error || !data) {
     console.error('Error fetching saved items:', error);
-    toast.error(error.message || 'Failed to load saved items');
     return [];
   }
-}
 
-export async function addToSavedItems(productId: string) {
-  try {
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) {
-      toast.error('Please sign in to save items');
-      throw new Error('Authentication required');
-    }
+  return data;
+};
 
-    // Use rpc call as a workaround for type issues with new tables
-    const { data: existingItem, error: checkError } = await supabase
-      .rpc('get_saved_item', { product_id_param: productId }) as any;
+/**
+ * Add a product to saved items
+ */
+export const addToSavedItems = async (productId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
 
-    if (checkError) {
-      // Fall back to direct query with type assertion if rpc fails
-      console.error('RPC error, falling back to direct query:', checkError);
-      
-      const { data: savedItem, error: savedError } = await supabase
-        .from('saved_items' as any)
-        .select()
-        .eq('product_id', productId)
-        .single() as any;
+  if (!user?.user) return false;
 
-      if (savedError && savedError.code !== 'PGRST116') throw savedError; // Not found error is ok
+  // Check if product is already saved
+  const { data: existingItems } = await supabase
+    .from('saved_items')
+    .select('*')
+    .eq('user_id', user.user.id)
+    .eq('product_id', productId) as any;
 
-      if (savedItem) {
-        toast.info('Item is already in your saved items');
-        return true;
-      }
-    } else if (existingItem) {
-      toast.info('Item is already in your saved items');
-      return true;
-    }
+  if (existingItems?.length > 0) {
+    // Already saved - update expiry date
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+    
+    const { error } = await supabase
+      .from('saved_items')
+      .update({ expires_at: expiryDate.toISOString() })
+      .eq('id', existingItems[0].id) as any;
 
-    // Add new item
-    const { error: insertError } = await supabase
-      .rpc('add_to_saved_items', {
-        product_id_param: productId
+    return !error;
+  } else {
+    // Add new saved item
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+    
+    const { error } = await supabase
+      .from('saved_items')
+      .insert({
+        user_id: user.user.id,
+        product_id: productId,
+        expires_at: expiryDate.toISOString()
       }) as any;
 
-    if (insertError) {
-      // Fall back to direct insert with type assertion if rpc fails
-      console.error('RPC error, falling back to direct insert:', insertError);
-      
-      const { error } = await supabase
-        .from('saved_items' as any)
-        .insert({
-          product_id: productId,
-        } as any) as any;
+    return !error;
+  }
+};
 
-      if (error) throw error;
-    }
-    
-    toast.success('Item saved for later');
-    return true;
-  } catch (error: any) {
-    console.error('Error saving item:', error);
-    toast.error(error.message || 'Failed to save item');
+/**
+ * Remove an item from saved items
+ */
+export const removeFromSavedItems = async (itemId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user?.user) return false;
+
+  const { error } = await supabase
+    .from('saved_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('user_id', user.user.id) as any;
+
+  return !error;
+};
+
+/**
+ * Move an item from saved items to cart
+ */
+export const moveToCart = async (itemId: string, productId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user?.user) return false;
+
+  // Add to cart first
+  const addSuccess = await addToCart(productId);
+  
+  if (!addSuccess) {
     return false;
   }
-}
-
-export async function removeFromSavedItems(savedItemId: string) {
-  try {
-    // Use rpc call as a workaround for type issues with new tables
-    const { error } = await supabase
-      .rpc('remove_from_saved_items', {
-        saved_item_id: savedItemId
-      });
-
-    if (error) {
-      // Fall back to direct delete with type assertion if rpc fails
-      console.error('RPC error, falling back to direct delete:', error);
-      
-      const { error: deleteError } = await supabase
-        .from('saved_items' as any)
-        .delete()
-        .eq('id', savedItemId);
-
-      if (deleteError) throw deleteError;
-    }
-    
-    toast.success('Item removed from saved items');
-    return true;
-  } catch (error: any) {
-    console.error('Error removing saved item:', error);
-    toast.error(error.message || 'Failed to remove saved item');
-    return false;
-  }
-}
-
-export async function moveToCart(savedItemId: string, productId: string) {
-  try {
-    // Add to cart first
-    const added = await addToCart(productId);
-    
-    if (added) {
-      // Then remove from saved items
-      await removeFromSavedItems(savedItemId);
-      toast.success('Item moved to cart');
-      return true;
-    }
-    
-    return false;
-  } catch (error: any) {
-    console.error('Error moving item to cart:', error);
-    toast.error(error.message || 'Failed to move item to cart');
-    return false;
-  }
-}
+  
+  // Then remove from saved items
+  return await removeFromSavedItems(itemId);
+};

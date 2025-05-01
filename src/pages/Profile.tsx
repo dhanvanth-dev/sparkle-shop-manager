@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -49,12 +50,12 @@ const Profile: React.FC = () => {
       if (error) {
         // Fall back to direct update with type assertion if rpc fails
         const { error: updateError } = await supabase
-          .from('profiles' as any)
+          .from('profiles')
           .update({
             full_name: data.fullName,
             updated_at: new Date().toISOString(),
-          } as any)
-          .eq('id', user.id);
+          })
+          .eq('id', user.id) as any;
 
         if (updateError) throw updateError;
       }

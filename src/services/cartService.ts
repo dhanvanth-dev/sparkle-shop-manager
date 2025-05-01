@@ -1,201 +1,146 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { CartItem } from '@/types/product';
+import { CartItem, Product } from '@/types/product';
 
-// Cart functions
-export async function getCartItems() {
-  try {
-    // Use rpc call as a workaround for type issues with new tables
-    const { data, error } = await supabase
-      .rpc('get_cart_items_with_products') as any;
+/**
+ * Get all items in the cart for the current user
+ */
+export const getCartItems = async (): Promise<CartItem[]> => {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user?.user) return [];
 
-    if (error) {
-      // Fall back to direct query with type assertion if rpc fails
-      console.error('RPC error, falling back to direct query:', error);
-      
-      const { data: cartData, error: cartError } = await supabase
-        .from('cart_items' as any)
-        .select(`
-          *,
-          product:products(*)
-        `) as any;
+  // First try using the RPC function (typesafe approach)
+  const { data, error } = await supabase.rpc('get_cart_items_with_products', {
+    user_id: user.user.id
+  }) as any;
 
-      if (cartError) throw cartError;
-      return cartData as unknown as CartItem[];
-    }
-
-    return data as unknown as CartItem[];
-  } catch (error: any) {
+  if (error || !data) {
     console.error('Error fetching cart items:', error);
-    toast.error(error.message || 'Failed to load cart items');
     return [];
   }
-}
 
-export async function addToCart(productId: string, quantity = 1) {
-  try {
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) {
-      toast.error('Please sign in to add items to your cart');
-      throw new Error('Authentication required');
-    }
+  return data;
+};
 
-    // Check if item is already in cart
-    const { data: existingItem, error: checkError } = await supabase
-      .rpc('get_cart_item', { product_id_param: productId }) as any;
+/**
+ * Add a product to the cart
+ */
+export const addToCart = async (productId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
 
-    if (checkError) {
-      // Fall back to direct query with type assertion if rpc fails
-      console.error('RPC error, falling back to direct query:', checkError);
-      
-      const { data: cartItem, error: cartError } = await supabase
-        .from('cart_items' as any)
-        .select()
-        .eq('product_id', productId)
-        .single() as any;
+  if (!user?.user) return false;
 
-      if (cartError && cartError.code !== 'PGRST116') throw cartError; // Not found error is ok
-      
-      if (cartItem) {
-        // Update quantity
-        const { error } = await supabase
-          .rpc('update_cart_item_quantity', {
-            cart_item_id: cartItem.id,
-            new_quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10)
-          }) as any;
+  // Check if product is already in cart
+  const { data: existingItems } = await supabase
+    .from('cart_items')
+    .select('*')
+    .eq('user_id', user.user.id)
+    .eq('product_id', productId) as any;
 
-        if (error) {
-          // Fall back to direct update with type assertion if rpc fails
-          console.error('RPC error, falling back to direct update:', error);
-          
-          const { error: updateError } = await supabase
-            .from('cart_items' as any)
-            .update({
-              quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10),
-              updated_at: new Date().toISOString()
-            } as any)
-            .eq('id', cartItem.id) as any;
-
-          if (updateError) throw updateError;
-        }
-        
-        toast.success('Cart updated successfully');
-        return true;
-      }
-    } else if (existingItem) {
-      // Update quantity using RPC
-      const { error } = await supabase
-        .rpc('update_cart_item_quantity', {
-          cart_item_id: existingItem.id,
-          new_quantity: Math.min(existingItem.quantity + quantity, 10)
-        }) as any;
-
-      if (error) throw error;
-      
-      toast.success('Cart updated successfully');
-      return true;
-    }
-
-    // Add new item
-    const { error: insertError } = await supabase
-      .rpc('add_to_cart', {
-        product_id_param: productId,
-        quantity_param: quantity
-      }) as any;
-
-    if (insertError) {
-      // Fall back to direct insert with type assertion if rpc fails
-      console.error('RPC error, falling back to direct insert:', insertError);
-      
-      const { error } = await supabase
-        .from('cart_items' as any)
-        .insert({
-          product_id: productId,
-          quantity,
-        } as any) as any;
-
-      if (error) throw error;
-    }
+  if (existingItems?.length > 0) {
+    // Update quantity if already in cart
+    const currentQuantity = existingItems[0].quantity || 0;
     
-    toast.success('Item added to cart');
-    return true;
-  } catch (error: any) {
-    console.error('Error adding to cart:', error);
-    toast.error(error.message || 'Failed to add item to cart');
-    return false;
-  }
-}
-
-export async function updateCartItemQuantity(cartItemId: string, quantity: number) {
-  try {
-    if (quantity < 1 || quantity > 10) {
-      toast.error('Quantity must be between 1 and 10');
-      return false;
-    }
-
-    // Use rpc call as a workaround for type issues with new tables
     const { error } = await supabase
-      .rpc('update_cart_item_quantity', {
-        cart_item_id: cartItemId,
-        new_quantity: quantity
-      }) as any;
+      .from('cart_items')
+      .update({ quantity: currentQuantity + 1 })
+      .eq('id', existingItems[0].id) as any;
 
-    if (error) {
-      // Fall back to direct update with type assertion if rpc fails
-      console.error('RPC error, falling back to direct update:', error);
-      
-      const { error: updateError } = await supabase
-        .from('cart_items' as any)
-        .update({ 
-          quantity, 
-          updated_at: new Date().toISOString() 
-        } as any)
-        .eq('id', cartItemId) as any;
-
-      if (updateError) throw updateError;
-    }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error updating cart item:', error);
-    toast.error(error.message || 'Failed to update item quantity');
-    return false;
-  }
-}
-
-export async function removeFromCart(cartItemId: string) {
-  try {
-    // Use rpc call as a workaround for type issues with new tables
+    return !error;
+  } else {
+    // Add new item to cart
     const { error } = await supabase
-      .rpc('remove_from_cart', {
-        cart_item_id: cartItemId
+      .from('cart_items')
+      .insert({
+        user_id: user.user.id,
+        product_id: productId,
+        quantity: 1
       }) as any;
 
-    if (error) {
-      // Fall back to direct delete with type assertion if rpc fails
-      console.error('RPC error, falling back to direct delete:', error);
-      
-      const { error: deleteError } = await supabase
-        .from('cart_items' as any)
-        .delete()
-        .eq('id', cartItemId) as any;
+    return !error;
+  }
+};
 
-      if (deleteError) throw deleteError;
-    }
-    
-    toast.success('Item removed from cart');
-    return true;
-  } catch (error: any) {
-    console.error('Error removing from cart:', error);
-    toast.error(error.message || 'Failed to remove item from cart');
+/**
+ * Update the quantity of an item in the cart
+ */
+export const updateCartItemQuantity = async (itemId: string, quantity: number): Promise<boolean> => {
+  if (quantity < 1) {
+    return removeFromCart(itemId);
+  }
+
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user?.user) return false;
+
+  const { error } = await supabase
+    .from('cart_items')
+    .update({ quantity })
+    .eq('id', itemId)
+    .eq('user_id', user.user.id) as any;
+
+  return !error;
+};
+
+/**
+ * Remove an item from the cart
+ */
+export const removeFromCart = async (itemId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user?.user) return false;
+
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('user_id', user.user.id) as any;
+
+  return !error;
+};
+
+/**
+ * Clear the cart
+ */
+export const clearCart = async (): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user?.user) return false;
+
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('user_id', user.user.id) as any;
+
+  return !error;
+};
+
+/**
+ * Move an item from cart to saved items
+ */
+export const moveToSavedItems = async (itemId: string, productId: string): Promise<boolean> => {
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user?.user) return false;
+  
+  // Create a saved item
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+
+  const { error: saveError } = await supabase
+    .from('saved_items')
+    .insert({
+      user_id: user.user.id,
+      product_id: productId,
+      expires_at: expiryDate.toISOString()
+    }) as any;
+
+  if (saveError) {
+    console.error('Error moving item to saved items:', saveError);
     return false;
   }
-}
 
-// Re-export functions from savedItemsService
-export { 
-  getSavedItems, 
-  addToSavedItems, 
-  removeFromSavedItems, 
-  moveToCart 
-} from './savedItemsService';
+  // Remove from cart
+  return await removeFromCart(itemId);
+};

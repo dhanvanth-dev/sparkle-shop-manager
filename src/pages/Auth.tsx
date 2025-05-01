@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -7,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LucideLoader2, Mail } from 'lucide-react';
+import { LucideLoader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
+import { toast } from 'sonner';
 
 interface LoginFormData {
   email: string;
@@ -40,10 +40,10 @@ const Auth: React.FC = () => {
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const session = await signIn(data.email, data.password);
-      if (session) {
-        navigate(returnTo);
-      }
+      await signIn(data.email, data.password);
+      // The auth state change handler will navigate once authenticated
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +53,10 @@ const Auth: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.fullName);
+      toast.success('Account created successfully! Please sign in.');
       setActiveTab("login");
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
@@ -62,8 +65,8 @@ const Auth: React.FC = () => {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
-      console.error("Google sign in error:", error);
+    } catch (error: any) {
+      toast.error(error.message || 'Google sign in error');
     }
   };
 

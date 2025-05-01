@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,9 @@ interface AuthContextProps {
   user: any;
   profile: UserProfile | null;
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: (email?: string, password?: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: (userId: string) => Promise<void>;
 }
@@ -45,7 +48,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const signIn = async () => {
+  const signIn = async (email?: string, password?: string) => {
+    if (email && password) {
+      // Email/password sign in
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+    } else {
+      // OAuth sign in with Google
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+    }
+  };
+
+  const signUp = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName
+        }
+      }
+    });
+    
+    if (error) throw error;
+  };
+  
+  const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -77,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     loading,
     signIn,
+    signUp,
+    signInWithGoogle,
     signOut,
     refreshProfile,
   };
