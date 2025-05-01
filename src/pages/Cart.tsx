@@ -11,8 +11,8 @@ import {
   getCartItems, 
   updateCartItemQuantity, 
   removeFromCart,
-  addToSavedItems 
 } from '@/services/cartService';
+import { addToSavedItems } from '@/services/savedItemsService';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();

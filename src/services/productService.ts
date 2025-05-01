@@ -90,3 +90,35 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
   
   return !error;
 };
+
+/**
+ * Upload a product image to Supabase Storage
+ */
+export const uploadProductImage = async (file: File): Promise<string | null> => {
+  // Generate a unique file name
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const filePath = `products/${fileName}`;
+
+  // Upload the file to Supabase Storage
+  const { data, error } = await supabase
+    .storage
+    .from('products')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error || !data?.path) {
+    console.error('Error uploading image:', error);
+    return null;
+  }
+
+  // Get the public URL
+  const { data: { publicUrl } } = supabase
+    .storage
+    .from('products')
+    .getPublicUrl(data.path);
+
+  return publicUrl;
+};
