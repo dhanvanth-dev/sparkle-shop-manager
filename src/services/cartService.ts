@@ -15,7 +15,7 @@ export async function getCartItems() {
       console.error('RPC error, falling back to direct query:', error);
       
       const { data: cartData, error: cartError } = await supabase
-        .from('cart_items')
+        .from('cart_items' as any)
         .select(`
           *,
           product:products(*)
@@ -51,7 +51,7 @@ export async function addToCart(productId: string, quantity = 1) {
       console.error('RPC error, falling back to direct query:', checkError);
       
       const { data: cartItem, error: cartError } = await supabase
-        .from('cart_items')
+        .from('cart_items' as any)
         .select()
         .eq('product_id', productId)
         .single();
@@ -71,7 +71,7 @@ export async function addToCart(productId: string, quantity = 1) {
           console.error('RPC error, falling back to direct update:', error);
           
           const { error: updateError } = await supabase
-            .from('cart_items')
+            .from('cart_items' as any)
             .update({
               quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10),
               updated_at: new Date().toISOString()
@@ -110,7 +110,7 @@ export async function addToCart(productId: string, quantity = 1) {
       console.error('RPC error, falling back to direct insert:', insertError);
       
       const { error } = await supabase
-        .from('cart_items')
+        .from('cart_items' as any)
         .insert({
           product_id: productId,
           quantity,
@@ -147,7 +147,7 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
       console.error('RPC error, falling back to direct update:', error);
       
       const { error: updateError } = await supabase
-        .from('cart_items')
+        .from('cart_items' as any)
         .update({ 
           quantity, 
           updated_at: new Date().toISOString() 
@@ -178,7 +178,7 @@ export async function removeFromCart(cartItemId: string) {
       console.error('RPC error, falling back to direct delete:', error);
       
       const { error: deleteError } = await supabase
-        .from('cart_items')
+        .from('cart_items' as any)
         .delete()
         .eq('id', cartItemId);
 

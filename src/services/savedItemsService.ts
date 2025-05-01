@@ -16,7 +16,7 @@ export async function getSavedItems() {
       console.error('RPC error, falling back to direct query:', error);
       
       const { data: savedData, error: savedError } = await supabase
-        .from('saved_items')
+        .from('saved_items' as any)
         .select(`
           *,
           product:products(*)
@@ -52,7 +52,7 @@ export async function addToSavedItems(productId: string) {
       console.error('RPC error, falling back to direct query:', checkError);
       
       const { data: savedItem, error: savedError } = await supabase
-        .from('saved_items')
+        .from('saved_items' as any)
         .select()
         .eq('product_id', productId)
         .single();
@@ -79,7 +79,7 @@ export async function addToSavedItems(productId: string) {
       console.error('RPC error, falling back to direct insert:', insertError);
       
       const { error } = await supabase
-        .from('saved_items')
+        .from('saved_items' as any)
         .insert({
           product_id: productId,
         } as any);
@@ -109,7 +109,7 @@ export async function removeFromSavedItems(savedItemId: string) {
       console.error('RPC error, falling back to direct delete:', error);
       
       const { error: deleteError } = await supabase
-        .from('saved_items')
+        .from('saved_items' as any)
         .delete()
         .eq('id', savedItemId);
 

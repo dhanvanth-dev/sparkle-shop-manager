@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ProductFormData } from '@/types/product';
+import { ProductFormData, ProductCategory, ProductGender } from '@/types/product';
 import { LucideLoader2 } from 'lucide-react';
 import { productFormSchema, ProductFormValues } from '@/schemas/product-schema';
 import { Form } from '@/components/ui/form';
@@ -20,8 +20,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
   const defaultValues: ProductFormValues = {
     name: initialData?.name || '',
     price: initialData?.price || 0,
-    category: initialData?.category || 'earrings',
-    gender: initialData?.gender || 'unisex',
+    category: (initialData?.category as ProductCategory) || 'earrings',
+    gender: (initialData?.gender as ProductGender) || 'unisex',
     description: initialData?.description || '',
     image_url: initialData?.image_url || '',
     is_new_arrival: initialData?.is_new_arrival || false,

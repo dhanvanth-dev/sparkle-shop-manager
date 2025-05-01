@@ -50,7 +50,7 @@ const Profile: React.FC = () => {
       if (error) {
         // Fall back to direct update with type assertion if rpc fails
         const { error: updateError } = await supabase
-          .from('profiles')
+          .from('profiles' as any)
           .update({
             full_name: data.fullName,
             updated_at: new Date().toISOString(),

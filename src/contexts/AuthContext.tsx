@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If no data returned from rpc, fall back to direct query with type casting
       if (!data) {
         const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
+          .from('profiles' as any)
           .select('*')
           .eq('id', userId)
           .single();
