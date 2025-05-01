@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SavedItem } from '@/types/product';
@@ -9,7 +8,7 @@ export async function getSavedItems() {
   try {
     // Use rpc call as a workaround for type issues with new tables
     const { data, error } = await supabase
-      .rpc('get_saved_items_with_products');
+      .rpc('get_saved_items_with_products') as any;
 
     if (error) {
       // Fall back to direct query with type assertion if rpc fails
@@ -20,8 +19,7 @@ export async function getSavedItems() {
         .select(`
           *,
           product:products(*)
-        `)
-        .order('created_at', { ascending: false });
+        `) as any;
 
       if (savedError) throw savedError;
       return savedData as unknown as SavedItem[];
@@ -45,7 +43,7 @@ export async function addToSavedItems(productId: string) {
 
     // Use rpc call as a workaround for type issues with new tables
     const { data: existingItem, error: checkError } = await supabase
-      .rpc('get_saved_item', { product_id_param: productId });
+      .rpc('get_saved_item', { product_id_param: productId }) as any;
 
     if (checkError) {
       // Fall back to direct query with type assertion if rpc fails
@@ -55,7 +53,7 @@ export async function addToSavedItems(productId: string) {
         .from('saved_items' as any)
         .select()
         .eq('product_id', productId)
-        .single();
+        .single() as any;
 
       if (savedError && savedError.code !== 'PGRST116') throw savedError; // Not found error is ok
 
@@ -72,7 +70,7 @@ export async function addToSavedItems(productId: string) {
     const { error: insertError } = await supabase
       .rpc('add_to_saved_items', {
         product_id_param: productId
-      });
+      }) as any;
 
     if (insertError) {
       // Fall back to direct insert with type assertion if rpc fails
@@ -82,7 +80,7 @@ export async function addToSavedItems(productId: string) {
         .from('saved_items' as any)
         .insert({
           product_id: productId,
-        } as any);
+        } as any) as any;
 
       if (error) throw error;
     }

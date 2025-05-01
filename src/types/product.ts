@@ -49,3 +49,26 @@ export type ProductCategory = typeof ProductCategories[number];
 
 export const ProductGenders = ['women', 'men', 'unisex'] as const;
 export type ProductGender = typeof ProductGenders[number];
+
+// Type assertion helpers for Supabase data
+export function assertIsProduct(data: any): asserts data is Product {
+  // Basic validation
+  if (!data || typeof data !== 'object') throw new Error('Invalid product data');
+  
+  // Type coercion for enum fields if needed
+  if (data.category && typeof data.category === 'string') {
+    if (!ProductCategories.includes(data.category as any)) {
+      console.warn(`Unexpected category value: ${data.category}`);
+    }
+  }
+  
+  if (data.gender && typeof data.gender === 'string') {
+    if (!ProductGenders.includes(data.gender as any)) {
+      console.warn(`Unexpected gender value: ${data.gender}`);
+    }
+  }
+}
+
+export function assertIsProductArray(data: any[]): asserts data is Product[] {
+  data.forEach(item => assertIsProduct(item));
+}

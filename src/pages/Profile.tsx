@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -45,7 +44,7 @@ const Profile: React.FC = () => {
         .rpc('update_user_profile', {
           user_id: user.id,
           new_full_name: data.fullName
-        });
+        }) as any;
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails

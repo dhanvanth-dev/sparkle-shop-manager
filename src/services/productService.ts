@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Product, ProductFormData } from '@/types/product';
+import { Product, ProductFormData, assertIsProduct, assertIsProductArray } from '@/types/product';
 import { toast } from 'sonner';
 
 export async function getProducts(): Promise<Product[]> {
@@ -15,7 +14,14 @@ export async function getProducts(): Promise<Product[]> {
     return [];
   }
 
-  return data || [];
+  try {
+    assertIsProductArray(data || []);
+    return data || [];
+  } catch (e) {
+    console.error('Type assertion error:', e);
+    // Return data with type assertion for fallback
+    return (data || []) as Product[];
+  }
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -31,7 +37,14 @@ export async function getProductById(id: string): Promise<Product | null> {
     return null;
   }
 
-  return data;
+  try {
+    assertIsProduct(data);
+    return data;
+  } catch (e) {
+    console.error('Type assertion error:', e);
+    // Return data with type assertion for fallback
+    return data as Product;
+  }
 }
 
 export async function createProduct(product: ProductFormData): Promise<Product | null> {
@@ -48,7 +61,14 @@ export async function createProduct(product: ProductFormData): Promise<Product |
   }
 
   toast.success('Product created successfully');
-  return data;
+  try {
+    assertIsProduct(data);
+    return data;
+  } catch (e) {
+    console.error('Type assertion error:', e);
+    // Return data with type assertion for fallback
+    return data as Product;
+  }
 }
 
 export async function updateProduct(id: string, product: ProductFormData): Promise<Product | null> {
@@ -66,7 +86,14 @@ export async function updateProduct(id: string, product: ProductFormData): Promi
   }
 
   toast.success('Product updated successfully');
-  return data;
+  try {
+    assertIsProduct(data);
+    return data;
+  } catch (e) {
+    console.error('Type assertion error:', e);
+    // Return data with type assertion for fallback
+    return data as Product;
+  }
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {

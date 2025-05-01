@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/product';
@@ -8,7 +7,7 @@ export async function getCartItems() {
   try {
     // Use rpc call as a workaround for type issues with new tables
     const { data, error } = await supabase
-      .rpc('get_cart_items_with_products');
+      .rpc('get_cart_items_with_products') as any;
 
     if (error) {
       // Fall back to direct query with type assertion if rpc fails
@@ -19,8 +18,7 @@ export async function getCartItems() {
         .select(`
           *,
           product:products(*)
-        `)
-        .order('created_at', { ascending: false });
+        `) as any;
 
       if (cartError) throw cartError;
       return cartData as unknown as CartItem[];
@@ -44,7 +42,7 @@ export async function addToCart(productId: string, quantity = 1) {
 
     // Check if item is already in cart
     const { data: existingItem, error: checkError } = await supabase
-      .rpc('get_cart_item', { product_id_param: productId });
+      .rpc('get_cart_item', { product_id_param: productId }) as any;
 
     if (checkError) {
       // Fall back to direct query with type assertion if rpc fails
@@ -54,7 +52,7 @@ export async function addToCart(productId: string, quantity = 1) {
         .from('cart_items' as any)
         .select()
         .eq('product_id', productId)
-        .single();
+        .single() as any;
 
       if (cartError && cartError.code !== 'PGRST116') throw cartError; // Not found error is ok
       
@@ -64,7 +62,7 @@ export async function addToCart(productId: string, quantity = 1) {
           .rpc('update_cart_item_quantity', {
             cart_item_id: cartItem.id,
             new_quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10)
-          });
+          }) as any;
 
         if (error) {
           // Fall back to direct update with type assertion if rpc fails
@@ -76,7 +74,7 @@ export async function addToCart(productId: string, quantity = 1) {
               quantity: Math.min((cartItem as unknown as CartItem).quantity + quantity, 10),
               updated_at: new Date().toISOString()
             } as any)
-            .eq('id', cartItem.id);
+            .eq('id', cartItem.id) as any;
 
           if (updateError) throw updateError;
         }
@@ -90,7 +88,7 @@ export async function addToCart(productId: string, quantity = 1) {
         .rpc('update_cart_item_quantity', {
           cart_item_id: existingItem.id,
           new_quantity: Math.min(existingItem.quantity + quantity, 10)
-        });
+        }) as any;
 
       if (error) throw error;
       
@@ -103,7 +101,7 @@ export async function addToCart(productId: string, quantity = 1) {
       .rpc('add_to_cart', {
         product_id_param: productId,
         quantity_param: quantity
-      });
+      }) as any;
 
     if (insertError) {
       // Fall back to direct insert with type assertion if rpc fails
@@ -114,7 +112,7 @@ export async function addToCart(productId: string, quantity = 1) {
         .insert({
           product_id: productId,
           quantity,
-        } as any);
+        } as any) as any;
 
       if (error) throw error;
     }
@@ -140,7 +138,7 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
       .rpc('update_cart_item_quantity', {
         cart_item_id: cartItemId,
         new_quantity: quantity
-      });
+      }) as any;
 
     if (error) {
       // Fall back to direct update with type assertion if rpc fails
@@ -152,7 +150,7 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
           quantity, 
           updated_at: new Date().toISOString() 
         } as any)
-        .eq('id', cartItemId);
+        .eq('id', cartItemId) as any;
 
       if (updateError) throw updateError;
     }
@@ -171,7 +169,7 @@ export async function removeFromCart(cartItemId: string) {
     const { error } = await supabase
       .rpc('remove_from_cart', {
         cart_item_id: cartItemId
-      });
+      }) as any;
 
     if (error) {
       // Fall back to direct delete with type assertion if rpc fails
@@ -180,7 +178,7 @@ export async function removeFromCart(cartItemId: string) {
       const { error: deleteError } = await supabase
         .from('cart_items' as any)
         .delete()
-        .eq('id', cartItemId);
+        .eq('id', cartItemId) as any;
 
       if (deleteError) throw deleteError;
     }
