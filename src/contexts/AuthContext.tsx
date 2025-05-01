@@ -116,11 +116,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async (id: string) => {
-    // Use rpc call as a workaround for type issues
-    const { data } = await supabase.rpc('get_profile_by_id', { 
-      user_id: id 
-    } as any);
+    // Cast the parameters to any type to bypass TypeScript checks for RPC calls
+    const params: any = { user_id: id };
+    
+    // Use rpc call with type assertion
+    const { data } = await supabase.rpc('get_profile_by_id', params);
 
+    // Check if data exists and is an array with entries
     if (data && Array.isArray(data) && data.length > 0) {
       setProfile(data[0]);
     } else {

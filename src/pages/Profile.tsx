@@ -40,12 +40,14 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Use rpc call as a workaround for type issues with new tables
-      const { error } = await supabase
-        .rpc('update_user_profile', {
-          user_id: user.id,
-          new_full_name: data.fullName
-        } as any);
+      // Create params object and cast to any
+      const params: any = {
+        user_id: user.id,
+        new_full_name: data.fullName
+      };
+      
+      // Use rpc call with type assertion
+      const { error } = await supabase.rpc('update_user_profile', params);
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails
