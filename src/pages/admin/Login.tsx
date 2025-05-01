@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { LucideLoader2 } from 'lucide-react';
-import { signIn } from '@/services/authService';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface LoginFormData {
   email: string;
@@ -17,24 +18,49 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  useEffect(() => {
-    if (user) {
+  React.useEffect(() => {
+    if (user && isAdmin) {
       navigate('/admin/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, isAdmin, navigate]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const session = await signIn(data.email, data.password);
-      if (session) {
-        navigate('/admin/dashboard');
+      // First, check if the email exists in the admins table
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', data.email)
+        .single();
+        
+      if (adminError || !adminData) {
+        toast.error('Invalid admin credentials');
+        setIsLoading(false);
+        return;
       }
+      
+      // Now try to sign in with Supabase Auth
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+      
+      if (error) {
+        toast.error(error.message || 'Failed to sign in');
+        setIsLoading(false);
+        return;
+      }
+      
+      toast.success('Signed in as admin');
+      navigate('/admin/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred');
     } finally {
       setIsLoading(false);
     }

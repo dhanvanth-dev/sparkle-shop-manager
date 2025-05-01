@@ -8,11 +8,13 @@ interface AuthContextProps {
   user: any;
   profile: UserProfile | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email?: string, password?: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: (userId: string) => Promise<void>;
+  checkAdminStatus: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -21,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +34,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         await refreshProfile(session.user.id);
+        
+        // Check if user is an admin
+        if (session.user.email) {
+          const adminStatus = await checkAdminStatus(session.user.email);
+          setIsAdmin(adminStatus);
+        }
       }
       setLoading(false);
     };
@@ -41,8 +50,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user || null);
       if (session?.user) {
         await refreshProfile(session.user.id);
+        
+        // Check if user is an admin
+        if (session.user.email) {
+          const adminStatus = await checkAdminStatus(session.user.email);
+          setIsAdmin(adminStatus);
+        }
       } else {
         setProfile(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -95,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setIsAdmin(false);
     navigate('/auth');
   };
 
@@ -104,22 +121,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user_id: id 
     } as any);
 
-    if (data && data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       setProfile(data[0]);
     } else {
       setProfile(null);
     }
   };
 
+  // Check if the user is an admin by querying the admins table
+  const checkAdminStatus = async (email: string): Promise<boolean> => {
+    const { data: adminData, error: adminError } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('email', email)
+      .single();
+    
+    if (adminError || !adminData) {
+      console.log('User is not an admin');
+      return false;
+    }
+    
+    console.log('User is an admin');
+    return true;
+  };
+
   const value: AuthContextProps = {
     user,
     profile,
     loading,
+    isAdmin,
     signIn,
     signUp,
     signInWithGoogle,
     signOut,
     refreshProfile,
+    checkAdminStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

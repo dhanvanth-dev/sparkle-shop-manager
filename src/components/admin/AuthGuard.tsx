@@ -9,13 +9,18 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/admin/login');
+    if (!loading) {
+      if (!user) {
+        navigate('/admin/login');
+      } else if (!isAdmin) {
+        // User is logged in but not an admin
+        navigate('/');
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isAdmin]);
 
   if (loading) {
     return (
@@ -25,7 +30,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  return user ? <>{children}</> : null;
+  return user && isAdmin ? <>{children}</> : null;
 };
 
 export default AuthGuard;

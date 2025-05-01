@@ -19,7 +19,7 @@ interface ProfileFormData {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading, profile, refreshProfile } = useAuth();
+  const { user, loading, profile, refreshProfile, isAdmin } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
@@ -157,6 +157,16 @@ const Profile: React.FC = () => {
               >
                 Order History
               </Button>
+              
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  className="w-full bg-gold hover:bg-gold-dark text-white"
+                  onClick={() => navigate('/admin/dashboard')}
+                >
+                  Admin Dashboard
+                </Button>
+              )}
               
               <Button 
                 variant="destructive"
