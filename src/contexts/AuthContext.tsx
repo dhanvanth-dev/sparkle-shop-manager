@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,10 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (id: string) => {
     try {
-      // Fix type assertion for RPC call
+      // Use proper type annotation with any for the parameters
       const { data, error } = await supabase.rpc(
         'get_profile_by_id', 
-        { user_id: id }
+        { user_id: id } as any
       ) as { data: UserProfile[], error: any };
 
       // Check if data exists and is an array with entries

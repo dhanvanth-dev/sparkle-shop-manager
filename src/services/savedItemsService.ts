@@ -15,7 +15,7 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
     // Use any to bypass strict typing issues with RPC
     const { data, error } = await supabase.rpc(
       'get_saved_items_with_products', 
-      { user_id: user.user.id }
+      { user_id: user.user.id } as any
     ) as { data: SavedItem[], error: any };
     
     if (error || !data) {

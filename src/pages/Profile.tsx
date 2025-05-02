@@ -46,7 +46,7 @@ const Profile: React.FC = () => {
         { 
           user_id: user.id,
           new_full_name: data.fullName
-        }
+        } as any
       ) as { error: any };
 
       if (error) {
