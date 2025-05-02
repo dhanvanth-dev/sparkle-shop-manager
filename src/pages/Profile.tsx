@@ -40,14 +40,14 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Use type assertion for the RPC call
+      // Fix type assertion for RPC call
       const { error } = await supabase.rpc(
         'update_user_profile', 
         { 
           user_id: user.id,
           new_full_name: data.fullName
         }
-      ) as unknown as { error: any };
+      ) as { error: any };
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails

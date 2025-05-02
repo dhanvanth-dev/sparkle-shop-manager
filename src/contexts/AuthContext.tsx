@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -121,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Remove any auth-related items from local storage
       localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('supabase.auth.expires_at');
+      localStorage.removeItem('supabase.auth.refresh_token');
       
       toast.success('Logged out successfully');
       navigate('/auth');
@@ -132,11 +133,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (id: string) => {
     try {
-      // Use type assertion for the RPC call
+      // Fix type assertion for RPC call
       const { data, error } = await supabase.rpc(
         'get_profile_by_id', 
         { user_id: id }
-      ) as unknown as { data: any[], error: any };
+      ) as { data: UserProfile[], error: any };
 
       // Check if data exists and is an array with entries
       if (data && Array.isArray(data) && data.length > 0) {
