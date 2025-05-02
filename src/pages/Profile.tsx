@@ -40,16 +40,11 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Explicitly cast the whole response to any
-      const response = await supabase.rpc(
-        'update_user_profile', 
-        { 
-          user_id: user.id,
-          new_full_name: data.fullName
-        }
-      ) as any;
-      
-      const { error } = response;
+      // Properly cast the function parameters
+      const { error } = await supabase.rpc('update_user_profile', { 
+        user_id: user.id,
+        new_full_name: data.fullName
+      } as any);
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails

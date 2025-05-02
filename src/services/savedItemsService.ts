@@ -12,14 +12,11 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Explicitly cast the whole response to any
-    const response = await supabase.rpc(
-      'get_saved_items_with_products', 
-      { user_id: user.user.id }
-    ) as any;
+    // Properly cast the function parameters and response
+    const { data, error } = await supabase.rpc('get_saved_items_with_products', { 
+      user_id: user.user.id 
+    } as any);
     
-    const { data, error } = response;
-
     if (error || !data) {
       console.error('Error fetching saved items:', error);
       return [];
