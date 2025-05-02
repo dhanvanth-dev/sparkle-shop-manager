@@ -11,11 +11,13 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Use proper type casting for the RPC call
-    const { data, error } = await supabase.rpc(
+    // Explicitly cast the whole response to any
+    const response = await supabase.rpc(
       'get_cart_items_with_products', 
       { user_id: user.user.id }
-    ) as unknown as { data: CartItem[], error: any };
+    ) as any;
+    
+    const { data, error } = response;
 
     if (error || !data) {
       console.error('Error fetching cart items:', error);

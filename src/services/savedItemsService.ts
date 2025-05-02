@@ -12,11 +12,13 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Using RPC call with proper type casting
-    const { data, error } = await supabase.rpc(
+    // Explicitly cast the whole response to any
+    const response = await supabase.rpc(
       'get_saved_items_with_products', 
       { user_id: user.user.id }
-    ) as unknown as { data: SavedItem[], error: any };
+    ) as any;
+    
+    const { data, error } = response;
 
     if (error || !data) {
       console.error('Error fetching saved items:', error);
