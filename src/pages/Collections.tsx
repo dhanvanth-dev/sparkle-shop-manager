@@ -5,8 +5,11 @@ import { ProductCard } from '@/components/ui/product-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { getProducts } from '@/services/productService';
 import { Product } from '@/types/product';
+import { RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const categories = [
   { value: 'all', label: 'All Categories' },
@@ -27,22 +30,27 @@ const genders = [
 
 const Collections: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedGender, setSelectedGender] = useState('all');
   
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const data = await getProducts();
+      setProducts(data);
+      setFilteredProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await getProducts();
-        setProducts(data);
-        setFilteredProducts(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchProducts();
   }, []);
   
@@ -70,6 +78,16 @@ const Collections: React.FC = () => {
     setSelectedGender(value);
   };
   
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchProducts();
+      toast.success('Products refreshed successfully');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
   return (
     <Layout>
       {/* Header */}
@@ -88,33 +106,47 @@ const Collections: React.FC = () => {
       <section className="py-8 px-4 bg-offwhite-dark sticky top-16 z-10">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <Tabs defaultValue="all" className="w-full md:w-auto" onValueChange={handleCategoryChange}>
-              <TabsList className="w-full md:w-auto bg-white grid grid-cols-2 md:flex md:space-x-1">
-                {categories.map((category) => (
-                  <TabsTrigger 
-                    key={category.value} 
-                    value={category.value}
-                    className="data-[state=active]:bg-gold data-[state=active]:text-white"
-                  >
-                    {category.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            
-            <div className="w-full md:w-64">
-              <Select onValueChange={handleGenderChange} defaultValue="all">
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Filter by Gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  {genders.map((gender) => (
-                    <SelectItem key={gender.value} value={gender.value}>
-                      {gender.label}
-                    </SelectItem>
+            <div className="flex items-center w-full md:w-auto">
+              <Tabs defaultValue="all" className="w-full md:w-auto" onValueChange={handleCategoryChange}>
+                <TabsList className="w-full md:w-auto bg-white grid grid-cols-2 md:flex md:space-x-1">
+                  {categories.map((category) => (
+                    <TabsTrigger 
+                      key={category.value} 
+                      value={category.value}
+                      className="data-[state=active]:bg-gold data-[state=active]:text-white"
+                    >
+                      {category.label}
+                    </TabsTrigger>
                   ))}
-                </SelectContent>
-              </Select>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="w-full md:w-64">
+                <Select onValueChange={handleGenderChange} defaultValue="all">
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Filter by Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {genders.map((gender) => (
+                      <SelectItem key={gender.value} value={gender.value}>
+                        {gender.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                onClick={handleRefresh} 
+                variant="outline"
+                disabled={refreshing || loading}
+                className="bg-white border-gold text-gold hover:bg-gold hover:text-white transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
             </div>
           </div>
         </div>

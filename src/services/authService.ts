@@ -26,6 +26,9 @@ export async function signOut() {
     return false;
   }
 
+  // Clear any local storage items if needed
+  localStorage.removeItem('supabase.auth.token');
+  
   return true;
 }
 

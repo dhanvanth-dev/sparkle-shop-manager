@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfile } from '@/types/product';
+import { toast } from 'sonner';
 
 interface AuthContextProps {
   user: any;
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadSession();
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user || null);
       if (session?.user) {
         await refreshProfile(session.user.id);
@@ -62,6 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setLoading(false);
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email?: string, password?: string) => {
@@ -108,19 +113,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setIsAdmin(false);
-    navigate('/auth');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+      
+      // Remove any auth-related items from local storage
+      localStorage.removeItem('supabase.auth.token');
+      
+      toast.success('Logged out successfully');
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      toast.error('Failed to log out');
+    }
   };
 
   const refreshProfile = async (id: string) => {
     try {
-      // Properly cast the function parameters and response
-      const { data, error } = await supabase.rpc('get_profile_by_id', { 
-        user_id: id 
-      } as any);
+      // Use type assertion for the RPC call
+      const { data, error } = await supabase.rpc(
+        'get_profile_by_id', 
+        { user_id: id }
+      ) as unknown as { data: any[], error: any };
 
       // Check if data exists and is an array with entries
       if (data && Array.isArray(data) && data.length > 0) {
