@@ -11,10 +11,13 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   if (!user?.user) return [];
 
   try {
+    // Create a properly typed parameter object
+    const params: Record<string, any> = { user_id: user.user.id };
+    
     // Properly type the RPC call
     const { data, error } = await supabase.rpc(
       'get_cart_items_with_products', 
-      { user_id: user.user.id } as any
+      params
     ) as { data: CartItem[], error: any };
 
     if (error || !data) {

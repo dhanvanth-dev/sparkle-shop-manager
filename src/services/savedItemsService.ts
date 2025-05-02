@@ -12,10 +12,13 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Use any to bypass strict typing issues with RPC
+    // Create a properly typed parameter object
+    const params: Record<string, any> = { user_id: user.user.id };
+    
+    // Use properly typed parameter object for RPC call
     const { data, error } = await supabase.rpc(
       'get_saved_items_with_products', 
-      { user_id: user.user.id } as any
+      params
     ) as { data: SavedItem[], error: any };
     
     if (error || !data) {

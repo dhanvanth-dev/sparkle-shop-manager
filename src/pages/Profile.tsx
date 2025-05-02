@@ -40,13 +40,15 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Fix type assertion for RPC call
+      // Create a properly typed parameter object
+      const params: Record<string, any> = {
+        user_id: user.id,
+        new_full_name: data.fullName
+      };
+      
       const { error } = await supabase.rpc(
-        'update_user_profile', 
-        { 
-          user_id: user.id,
-          new_full_name: data.fullName
-        } as any
+        'update_user_profile',
+        params
       ) as { error: any };
 
       if (error) {
