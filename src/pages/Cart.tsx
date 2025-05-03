@@ -265,7 +265,10 @@ const Cart: React.FC = () => {
                     <span>{formatCurrency(calculateSubtotal())}</span>
                   </div>
                   
-                  <Button className="w-full bg-gold hover:bg-gold-dark">
+                  <Button 
+                    className="w-full bg-gold hover:bg-gold-dark"
+                    onClick={() => navigate('/checkout')}
+                  >
                     Proceed to Checkout
                   </Button>
                   

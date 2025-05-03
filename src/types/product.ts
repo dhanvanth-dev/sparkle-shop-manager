@@ -1,7 +1,5 @@
 
-// Remove the invalid import
-// import { WatchMode } from "typescript";
-
+// Product types definition
 export interface Product {
   id: string;
   name: string;

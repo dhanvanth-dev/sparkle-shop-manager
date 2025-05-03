@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LucideLoader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import Layout from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LucideLoader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfileFormData {
@@ -52,7 +53,7 @@ const Profile: React.FC = () => {
           user_id: user.id,
           new_full_name: data.fullName
         }
-      );
+      ) as any;
 
       if (error) {
         const { error: updateError } = await supabase
@@ -62,15 +63,15 @@ const Profile: React.FC = () => {
             updated_at: new Date().toISOString(),
           })
           .eq('id', user.id) as any;
-
+        
         if (updateError) throw updateError;
       }
 
       await refreshProfile(user.id);
       toast.success('Profile updated successfully');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
       console.error('Error updating profile:', error);
+      toast.error(error.message || 'Error updating profile');
     } finally {
       setIsUpdating(false);
     }

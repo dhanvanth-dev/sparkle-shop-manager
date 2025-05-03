@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import SavedItems from "./pages/SavedItems";
 import Profile from "./pages/Profile";
 
@@ -44,6 +45,7 @@ const App = () => (
             
             {/* User authenticated routes */}
             <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/saved-items" element={<SavedItems />} />
             <Route path="/profile" element={<Profile />} />
             

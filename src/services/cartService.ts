@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, Product } from '@/types/product';
 import { toast } from 'sonner';
@@ -11,7 +12,7 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   if (!user?.user) return [];
 
   try {
-    const { data, error } = await supabase.rpc('get_cart_items_with_products');
+    const { data, error } = await supabase.rpc('get_cart_items_with_products', {}) as any;
 
     if (error || !data) {
       console.error('Error fetching cart items:', error);
