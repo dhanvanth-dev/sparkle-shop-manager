@@ -1,18 +1,19 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardFooter } from "./card";
+import { Badge } from "./badge";
 
-export interface ProductCardProps {
+interface ProductCardProps {
   id: string;
   name: string;
   price: number;
   image: string;
-  category: string;
+  category?: string;
   gender?: string;
   isNewArrival?: boolean;
   isSoldOut?: boolean;
+  currencyFormat?: string;
 }
 
 export const ProductCard = ({
@@ -20,34 +21,61 @@ export const ProductCard = ({
   name,
   price,
   image,
-  isNewArrival,
-  isSoldOut
+  category,
+  gender,
+  isNewArrival = false,
+  isSoldOut = false,
+  currencyFormat = "INR"
 }: ProductCardProps) => {
+  const formatPrice = (amount: number) => {
+    return new Intl.NumberFormat(currencyFormat === "INR" ? "en-IN" : "en-US", {
+      style: "currency",
+      currency: currencyFormat
+    }).format(amount);
+  };
+
   return (
-    <Link to={`/product/${id}`}>
-      <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-lg relative">
-        <div className="relative aspect-square overflow-hidden">
+    <Card className="overflow-hidden h-full border-none shadow-sm transition-all hover:shadow-md bg-white">
+      <Link to={`/product/${id}`} className="group">
+        <div className="relative overflow-hidden aspect-square">
           <img
             src={image}
             alt={name}
-            className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
           />
           {isNewArrival && (
             <Badge className="absolute top-2 left-2 bg-gold hover:bg-gold">New</Badge>
           )}
           {isSoldOut && (
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-              <Badge className="bg-charcoal text-white hover:bg-charcoal px-3 py-1 text-sm">Sold Out</Badge>
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Badge variant="destructive" className="text-lg font-medium px-4 py-1.5">
+                Sold Out
+              </Badge>
             </div>
           )}
         </div>
+
         <CardContent className="p-4">
-          <h3 className="font-medium text-lg text-charcoal line-clamp-1">{name}</h3>
+          <h3 className="font-medium line-clamp-1 text-base md:text-lg">{name}</h3>
+          <div className="flex items-center justify-between mt-2">
+            <p className="font-medium text-gold">{formatPrice(price)}</p>
+            {category && (
+              <span className="text-xs text-gray-500 capitalize">{category}</span>
+            )}
+          </div>
         </CardContent>
-        <CardFooter className="pt-0 pb-4 px-4">
-          <p className="text-gold font-medium">${(price / 100).toFixed(2)}</p>
+
+        <CardFooter className="p-4 pt-0">
+          <div className="w-full flex items-center justify-between">
+            {gender && (
+              <span className="text-xs text-gray-500 capitalize">{gender}</span>
+            )}
+            <span className="text-xs text-gray-500 underline transition-opacity opacity-0 group-hover:opacity-100">
+              View Details
+            </span>
+          </div>
         </CardFooter>
-      </Card>
-    </Link>
+      </Link>
+    </Card>
   );
 };

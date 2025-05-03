@@ -59,12 +59,12 @@ const Collections: React.FC = () => {
     
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => product.category.toLowerCase() === selectedCategory.toLowerCase());
     }
     
     // Filter by gender
     if (selectedGender !== 'all') {
-      filtered = filtered.filter(product => product.gender === selectedGender);
+      filtered = filtered.filter(product => product.gender?.toLowerCase() === selectedGender.toLowerCase());
     }
     
     setFilteredProducts(filtered);
@@ -87,6 +87,13 @@ const Collections: React.FC = () => {
       setRefreshing(false);
     }
   };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(amount);
+  };
   
   return (
     <Layout>
@@ -102,18 +109,19 @@ const Collections: React.FC = () => {
         </div>
       </section>
       
-      {/* Filtering Section */}
-      <section className="py-8 px-4 bg-offwhite-dark sticky top-16 z-10">
+      {/* Filtering Section - Optimized for mobile */}
+      <section className="py-4 px-2 md:py-8 md:px-4 bg-offwhite-dark sticky top-16 z-10">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center w-full md:w-auto">
-              <Tabs defaultValue="all" className="w-full md:w-auto" onValueChange={handleCategoryChange}>
-                <TabsList className="w-full md:w-auto bg-white grid grid-cols-2 md:flex md:space-x-1">
+            {/* Categories Tabs - Scrollable on mobile */}
+            <div className="w-full overflow-x-auto pb-2">
+              <Tabs defaultValue={selectedCategory} className="w-full" onValueChange={handleCategoryChange}>
+                <TabsList className="w-full inline-flex whitespace-nowrap">
                   {categories.map((category) => (
                     <TabsTrigger 
                       key={category.value} 
                       value={category.value}
-                      className="data-[state=active]:bg-gold data-[state=active]:text-white"
+                      className="data-[state=active]:bg-gold data-[state=active]:text-white px-3 py-1.5 text-sm"
                     >
                       {category.label}
                     </TabsTrigger>
@@ -122,8 +130,9 @@ const Collections: React.FC = () => {
               </Tabs>
             </div>
             
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="w-full md:w-64">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Gender Filter */}
+              <div className="flex-grow md:w-64">
                 <Select onValueChange={handleGenderChange} defaultValue="all">
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Filter by Gender" />
@@ -138,14 +147,16 @@ const Collections: React.FC = () => {
                 </Select>
               </div>
               
+              {/* Refresh Button */}
               <Button 
                 onClick={handleRefresh} 
                 variant="outline"
                 disabled={refreshing || loading}
                 className="bg-white border-gold text-gold hover:bg-gold hover:text-white transition-colors"
+                size="icon"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                {refreshing ? 'Refreshing...' : 'Refresh'}
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="sr-only">Refresh</span>
               </Button>
             </div>
           </div>
@@ -153,13 +164,13 @@ const Collections: React.FC = () => {
       </section>
       
       {/* Products Grid */}
-      <section className="py-12 px-4">
+      <section className="py-8 px-2 md:py-12 md:px-4">
         <div className="container mx-auto">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {Array.from({ length: 8 }).map((_, index) => (
                 <div key={index} className="animate-pulse">
-                  <Skeleton className="h-[300px] w-full rounded-t-lg" />
+                  <Skeleton className="h-[200px] md:h-[300px] w-full rounded-t-lg" />
                   <div className="p-4">
                     <Skeleton className="h-6 w-3/4 mb-2" />
                     <Skeleton className="h-5 w-1/2" />
@@ -168,7 +179,7 @@ const Collections: React.FC = () => {
               ))}
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {filteredProducts.map((product, index) => (
                 <div 
                   key={product.id} 
@@ -184,6 +195,7 @@ const Collections: React.FC = () => {
                     gender={product.gender}
                     isNewArrival={product.is_new_arrival}
                     isSoldOut={product.is_sold_out}
+                    currencyFormat="INR"
                   />
                 </div>
               ))}

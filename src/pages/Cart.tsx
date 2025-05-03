@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LucideLoader2, Trash2, Heart, Plus, Minus, AlertTriangle, ShoppingBag } from 'lucide-react';
@@ -11,8 +12,9 @@ import {
   getCartItems, 
   updateCartItemQuantity, 
   removeFromCart,
+  moveToSavedItems
 } from '@/services/cartService';
-import { addToSavedItems } from '@/services/savedItemsService';
+import { toast } from 'sonner';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -32,49 +34,81 @@ const Cart: React.FC = () => {
   }, [user, loading, navigate]);
 
   const loadCartItems = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
-    const items = await getCartItems();
-    setCartItems(items);
-    setIsLoading(false);
+    try {
+      const items = await getCartItems();
+      setCartItems(items);
+    } catch (error) {
+      toast.error('Failed to load cart items');
+      console.error('Error loading cart items:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUpdateQuantity = async (item: CartItem, newQuantity: number) => {
     if (newQuantity < 1 || newQuantity > 10) return;
     
     setProcessingItems(prev => ({ ...prev, [item.id]: true }));
-    const success = await updateCartItemQuantity(item.id, newQuantity);
-    
-    if (success) {
-      setCartItems(prev => 
-        prev.map(cartItem => 
-          cartItem.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem
-        )
-      );
+    try {
+      const success = await updateCartItemQuantity(item.id, newQuantity);
+      
+      if (success) {
+        setCartItems(prev => 
+          prev.map(cartItem => 
+            cartItem.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem
+          )
+        );
+        toast.success('Quantity updated');
+      } else {
+        toast.error('Failed to update quantity');
+      }
+    } catch (error) {
+      toast.error('An error occurred');
+      console.error('Error updating quantity:', error);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [item.id]: false }));
     }
-    
-    setProcessingItems(prev => ({ ...prev, [item.id]: false }));
   };
 
   const handleRemoveItem = async (itemId: string) => {
     setProcessingItems(prev => ({ ...prev, [itemId]: true }));
-    const success = await removeFromCart(itemId);
-    
-    if (success) {
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
+    try {
+      const success = await removeFromCart(itemId);
+      
+      if (success) {
+        setCartItems(prev => prev.filter(item => item.id !== itemId));
+        toast.success('Item removed from cart');
+      } else {
+        toast.error('Failed to remove item');
+      }
+    } catch (error) {
+      toast.error('An error occurred');
+      console.error('Error removing item:', error);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [itemId]: false }));
     }
-    
-    setProcessingItems(prev => ({ ...prev, [itemId]: false }));
   };
 
   const handleSaveForLater = async (item: CartItem) => {
     setProcessingItems(prev => ({ ...prev, [item.id]: true }));
-    const success = await addToSavedItems(item.product_id);
-    
-    if (success) {
-      await handleRemoveItem(item.id);
+    try {
+      const success = await moveToSavedItems(item.id, item.product_id);
+      
+      if (success) {
+        setCartItems(prev => prev.filter(cartItem => cartItem.id !== item.id));
+        toast.success('Item moved to saved items');
+      } else {
+        toast.error('Failed to move item');
+      }
+    } catch (error) {
+      toast.error('An error occurred');
+      console.error('Error saving item:', error);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [item.id]: false }));
     }
-    
-    setProcessingItems(prev => ({ ...prev, [item.id]: false }));
   };
 
   const calculateSubtotal = () => {
@@ -82,10 +116,10 @@ const Cart: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
-    }).format(amount / 100); // Assuming price is stored in cents
+      currency: 'INR',
+    }).format(amount);
   };
 
   if (loading || (user && isLoading)) {

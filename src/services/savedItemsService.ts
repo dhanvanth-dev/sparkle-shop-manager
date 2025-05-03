@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SavedItem } from '@/types/product';
 import { addToCart } from './cartService';
+import { toast } from 'sonner';
 
 /**
  * Get all saved items for the current user
@@ -12,14 +13,10 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Create a properly typed parameter object
-    const params: Record<string, any> = { user_id: user.user.id };
-    
-    // Use properly typed parameter object for RPC call
+    // Use "as any" to bypass type checking on the RPC call
     const { data, error } = await supabase.rpc(
-      'get_saved_items_with_products', 
-      params
-    ) as { data: SavedItem[], error: any };
+      'get_saved_items_with_products'
+    ) as any;
     
     if (error || !data) {
       console.error('Error fetching saved items:', error);
@@ -41,38 +38,44 @@ export const addToSavedItems = async (productId: string): Promise<boolean> => {
 
   if (!user?.user) return false;
 
-  // Check if product is already saved
-  const { data: existingItems } = await supabase
-    .from('saved_items')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .eq('product_id', productId) as any;
-
-  if (existingItems?.length > 0) {
-    // Already saved - update expiry date
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
-    
-    const { error } = await supabase
+  try {
+    // Check if product is already saved
+    const { data: existingItems } = await supabase
       .from('saved_items')
-      .update({ expires_at: expiryDate.toISOString() })
-      .eq('id', existingItems[0].id) as any;
+      .select('*')
+      .eq('user_id', user.user.id)
+      .eq('product_id', productId) as any;
 
-    return !error;
-  } else {
-    // Add new saved item
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
-    
-    const { error } = await supabase
-      .from('saved_items')
-      .insert({
-        user_id: user.user.id,
-        product_id: productId,
-        expires_at: expiryDate.toISOString()
-      }) as any;
+    if (existingItems?.length > 0) {
+      // Already saved - update expiry date
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+      
+      const { error } = await supabase
+        .from('saved_items')
+        .update({ expires_at: expiryDate.toISOString() })
+        .eq('id', existingItems[0].id) as any;
 
-    return !error;
+      return !error;
+    } else {
+      // Add new saved item
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+      
+      const { error } = await supabase
+        .from('saved_items')
+        .insert({
+          user_id: user.user.id,
+          product_id: productId,
+          expires_at: expiryDate.toISOString()
+        }) as any;
+
+      return !error;
+    }
+  } catch (error) {
+    console.error('Error adding to saved items:', error);
+    toast.error('Failed to save item');
+    return false;
   }
 };
 
@@ -84,13 +87,18 @@ export const removeFromSavedItems = async (itemId: string): Promise<boolean> => 
 
   if (!user?.user) return false;
 
-  const { error } = await supabase
-    .from('saved_items')
-    .delete()
-    .eq('id', itemId)
-    .eq('user_id', user.user.id) as any;
+  try {
+    const { error } = await supabase
+      .from('saved_items')
+      .delete()
+      .eq('id', itemId)
+      .eq('user_id', user.user.id) as any;
 
-  return !error;
+    return !error;
+  } catch (error) {
+    console.error('Error removing saved item:', error);
+    return false;
+  }
 };
 
 /**
@@ -101,13 +109,19 @@ export const moveToCart = async (itemId: string, productId: string): Promise<boo
   
   if (!user?.user) return false;
 
-  // Add to cart first
-  const addSuccess = await addToCart(productId);
-  
-  if (!addSuccess) {
+  try {
+    // Add to cart first
+    const addSuccess = await addToCart(productId);
+    
+    if (!addSuccess) {
+      return false;
+    }
+    
+    // Then remove from saved items
+    return await removeFromSavedItems(itemId);
+  } catch (error) {
+    console.error('Error moving item to cart:', error);
+    toast.error('Failed to move item to cart');
     return false;
   }
-  
-  // Then remove from saved items
-  return await removeFromSavedItems(itemId);
 };

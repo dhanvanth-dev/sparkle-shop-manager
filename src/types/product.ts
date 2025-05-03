@@ -1,4 +1,6 @@
 
+import { WatchMode } from "typescript";
+
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +9,8 @@ export interface Product {
   gender?: ProductGender;
   description?: string;
   image_url?: string;
+  additional_images?: string[]; // Array of additional image URLs
+  video_url?: string; // URL for product video if available
   is_new_arrival: boolean;
   is_sold_out: boolean;
   created_at: string;

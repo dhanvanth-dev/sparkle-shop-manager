@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, Product } from '@/types/product';
+import { toast } from 'sonner';
 
 /**
  * Get all items in the cart for the current user
@@ -11,14 +12,10 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Create a properly typed parameter object
-    const params: Record<string, any> = { user_id: user.user.id };
-    
-    // Properly type the RPC call
+    // Use "as any" to bypass type checking on the RPC call
     const { data, error } = await supabase.rpc(
-      'get_cart_items_with_products', 
-      params
-    ) as { data: CartItem[], error: any };
+      'get_cart_items_with_products'
+    ) as any;
 
     if (error || !data) {
       console.error('Error fetching cart items:', error);
@@ -40,34 +37,40 @@ export const addToCart = async (productId: string): Promise<boolean> => {
 
   if (!user?.user) return false;
 
-  // Check if product is already in cart
-  const { data: existingItems } = await supabase
-    .from('cart_items')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .eq('product_id', productId) as any;
-
-  if (existingItems?.length > 0) {
-    // Update quantity if already in cart
-    const currentQuantity = existingItems[0].quantity || 0;
-    
-    const { error } = await supabase
+  try {
+    // Check if product is already in cart
+    const { data: existingItems } = await supabase
       .from('cart_items')
-      .update({ quantity: currentQuantity + 1 })
-      .eq('id', existingItems[0].id) as any;
+      .select('*')
+      .eq('user_id', user.user.id)
+      .eq('product_id', productId) as any;
 
-    return !error;
-  } else {
-    // Add new item to cart
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({
-        user_id: user.user.id,
-        product_id: productId,
-        quantity: 1
-      }) as any;
+    if (existingItems?.length > 0) {
+      // Update quantity if already in cart
+      const currentQuantity = existingItems[0].quantity || 0;
+      
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ quantity: currentQuantity + 1 })
+        .eq('id', existingItems[0].id) as any;
 
-    return !error;
+      return !error;
+    } else {
+      // Add new item to cart
+      const { error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.user.id,
+          product_id: productId,
+          quantity: 1
+        }) as any;
+
+      return !error;
+    }
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    toast.error('Failed to add item to cart');
+    return false;
   }
 };
 
@@ -83,13 +86,18 @@ export const updateCartItemQuantity = async (itemId: string, quantity: number): 
 
   if (!user?.user) return false;
 
-  const { error } = await supabase
-    .from('cart_items')
-    .update({ quantity })
-    .eq('id', itemId)
-    .eq('user_id', user.user.id) as any;
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .update({ quantity })
+      .eq('id', itemId)
+      .eq('user_id', user.user.id) as any;
 
-  return !error;
+    return !error;
+  } catch (error) {
+    console.error('Error updating cart item quantity:', error);
+    return false;
+  }
 };
 
 /**
@@ -100,13 +108,18 @@ export const removeFromCart = async (itemId: string): Promise<boolean> => {
 
   if (!user?.user) return false;
 
-  const { error } = await supabase
-    .from('cart_items')
-    .delete()
-    .eq('id', itemId)
-    .eq('user_id', user.user.id) as any;
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', itemId)
+      .eq('user_id', user.user.id) as any;
 
-  return !error;
+    return !error;
+  } catch (error) {
+    console.error('Error removing from cart:', error);
+    return false;
+  }
 };
 
 /**
@@ -117,12 +130,17 @@ export const clearCart = async (): Promise<boolean> => {
 
   if (!user?.user) return false;
 
-  const { error } = await supabase
-    .from('cart_items')
-    .delete()
-    .eq('user_id', user.user.id) as any;
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', user.user.id) as any;
 
-  return !error;
+    return !error;
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    return false;
+  }
 };
 
 /**
@@ -133,23 +151,28 @@ export const moveToSavedItems = async (itemId: string, productId: string): Promi
 
   if (!user?.user) return false;
   
-  // Create a saved item
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
+  try {
+    // Create a saved item
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
 
-  const { error: saveError } = await supabase
-    .from('saved_items')
-    .insert({
-      user_id: user.user.id,
-      product_id: productId,
-      expires_at: expiryDate.toISOString()
-    }) as any;
+    const { error: saveError } = await supabase
+      .from('saved_items')
+      .insert({
+        user_id: user.user.id,
+        product_id: productId,
+        expires_at: expiryDate.toISOString()
+      }) as any;
 
-  if (saveError) {
-    console.error('Error moving item to saved items:', saveError);
+    if (saveError) {
+      console.error('Error moving item to saved items:', saveError);
+      return false;
+    }
+
+    // Remove from cart
+    return await removeFromCart(itemId);
+  } catch (error) {
+    console.error('Error moving item to saved items:', error);
     return false;
   }
-
-  // Remove from cart
-  return await removeFromCart(itemId);
 };

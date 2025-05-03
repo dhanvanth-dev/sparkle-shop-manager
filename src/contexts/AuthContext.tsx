@@ -29,20 +29,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const loadSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      setUser(session?.user || null);
-
-      if (session?.user) {
-        await refreshProfile(session.user.id);
-        
-        // Check if user is an admin
-        if (session.user.email) {
-          const adminStatus = await checkAdminStatus(session.user.email);
-          setIsAdmin(adminStatus);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+  
+        setUser(session?.user || null);
+  
+        if (session?.user) {
+          await refreshProfile(session.user.id);
+          
+          // Check if user is an admin
+          if (session.user.email) {
+            const adminStatus = await checkAdminStatus(session.user.email);
+            setIsAdmin(adminStatus);
+          }
         }
+      } catch (error) {
+        console.error('Error loading session:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadSession();
@@ -115,14 +120,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      
+      // Clear user state
       setUser(null);
       setProfile(null);
       setIsAdmin(false);
       
-      // Remove any auth-related items from local storage
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('supabase.auth.expires_at');
-      localStorage.removeItem('supabase.auth.refresh_token');
+      // Clear all auth-related items from local storage
+      // This is a more thorough approach to ensure complete logout
+      const keysToRemove = [
+        'supabase.auth.token',
+        'supabase.auth.expires_at',
+        'supabase.auth.refresh_token',
+        'sb-hgdcneupkjiidjahpszh-auth-token',
+        'supabase.auth.callback_url'
+      ];
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      // Also clear all items that start with 'supabase.auth.'
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase.auth.') || key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       toast.success('Logged out successfully');
       navigate('/auth');
@@ -135,12 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshProfile = async (id: string) => {
     try {
       // Fix type for RPC call - create a properly typed parameter object
-      const params: Record<string, any> = { user_id: id };
+      const params = { user_id: id };
       
+      // Use "as any" to bypass type checking on the RPC call
       const { data, error } = await supabase.rpc(
         'get_profile_by_id', 
         params
-      ) as { data: UserProfile[], error: any };
+      ) as any;
 
       // Check if data exists and is an array with entries
       if (data && Array.isArray(data) && data.length > 0) {
@@ -157,19 +181,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if the user is an admin by querying the admins table
   const checkAdminStatus = async (email: string): Promise<boolean> => {
-    const { data: adminData, error: adminError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (adminError || !adminData) {
-      console.log('User is not an admin');
+    try {
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', email)
+        .single();
+      
+      if (adminError || !adminData) {
+        console.log('User is not an admin');
+        return false;
+      }
+      
+      console.log('User is an admin');
+      return true;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
       return false;
     }
-    
-    console.log('User is an admin');
-    return true;
   };
 
   const value: AuthContextProps = {

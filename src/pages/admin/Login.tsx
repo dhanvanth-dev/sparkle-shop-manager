@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,8 @@ const Login: React.FC = () => {
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  React.useEffect(() => {
+  useEffect(() => {
+    // Redirect if user is already logged in as admin
     if (user && isAdmin) {
       navigate('/admin/dashboard');
     }
@@ -37,30 +38,56 @@ const Login: React.FC = () => {
         .from('admins')
         .select('*')
         .eq('email', data.email)
-        .single();
+        .maybeSingle();
         
-      if (adminError || !adminData) {
+      if (adminError) {
+        throw new Error('Error checking admin status');
+      }
+      
+      if (!adminData) {
         toast.error('Invalid admin credentials');
         setIsLoading(false);
         return;
       }
       
-      // Now try to sign in with Supabase Auth
+      // Check if password matches
+      if (adminData.password !== data.password) {
+        toast.error('Invalid admin credentials');
+        setIsLoading(false);
+        return;
+      }
+      
+      // If admin exists and password matches, sign in with Supabase Auth
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });
       
       if (error) {
-        toast.error(error.message || 'Failed to sign in');
-        setIsLoading(false);
-        return;
+        // If auth error, try signup (admin might not have an auth account yet)
+        const { error: signupError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              is_admin: true
+            }
+          }
+        });
+        
+        if (signupError) {
+          throw signupError;
+        }
+        
+        toast.success('Admin account created and signed in');
+      } else {
+        toast.success('Signed in as admin');
       }
       
-      toast.success('Signed in as admin');
       navigate('/admin/dashboard');
     } catch (error: any) {
       toast.error(error.message || 'An error occurred');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }

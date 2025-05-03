@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -19,37 +19,42 @@ interface ProfileFormData {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading, profile, refreshProfile, isAdmin } = useAuth();
+  const { user, loading, profile, refreshProfile, isAdmin, signOut } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileFormData>({
     defaultValues: {
       fullName: profile?.full_name || '',
       email: profile?.email || '',
     }
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!loading && !user) {
       navigate('/auth?returnTo=/profile');
     }
-  }, [user, loading, navigate]);
+    
+    if (profile) {
+      reset({
+        fullName: profile.full_name || '',
+        email: profile.email || '',
+      });
+    }
+  }, [user, loading, navigate, profile, reset]);
 
   const onSubmit = async (data: ProfileFormData) => {
     if (!user) return;
     
     setIsUpdating(true);
     try {
-      // Create a properly typed parameter object
-      const params: Record<string, any> = {
-        user_id: user.id,
-        new_full_name: data.fullName
-      };
-      
+      // Use "as any" to bypass type checking on the RPC call
       const { error } = await supabase.rpc(
         'update_user_profile',
-        params
-      ) as { error: any };
+        {
+          user_id: user.id,
+          new_full_name: data.fullName
+        }
+      ) as any;
 
       if (error) {
         // Fall back to direct update with type assertion if rpc fails
@@ -73,6 +78,11 @@ const Profile: React.FC = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   if (loading || !profile) {
@@ -157,9 +167,9 @@ const Profile: React.FC = () => {
               <Button 
                 variant="outline"
                 className="w-full"
-                onClick={() => navigate('/orders')}
+                onClick={() => navigate('/cart')}
               >
-                Order History
+                View Cart
               </Button>
               
               {isAdmin && (
@@ -175,7 +185,7 @@ const Profile: React.FC = () => {
               <Button 
                 variant="destructive"
                 className="w-full"
-                onClick={() => navigate('/auth')}
+                onClick={handleSignOut}
               >
                 Sign Out
               </Button>
