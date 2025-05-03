@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { CartItem, Product } from '@/types/product';
+import { CartItem } from '@/types/product';
 import { toast } from 'sonner';
 
 /**
