@@ -47,13 +47,16 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Use "as any" to bypass type checking on the RPC call
+      // Create a properly typed parameter object
+      const params: Record<string, any> = {
+        user_id: user.id,
+        new_full_name: data.fullName
+      };
+
+      // Use the typed parameter object with the RPC call
       const { error } = await supabase.rpc(
         'update_user_profile',
-        {
-          user_id: user.id,
-          new_full_name: data.fullName
-        }
+        params
       ) as any;
 
       if (error) {

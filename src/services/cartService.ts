@@ -12,9 +12,13 @@ export const getCartItems = async (): Promise<CartItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Use "as any" to bypass type checking on the RPC call
+    // Create a properly typed parameter object (even if empty)
+    const params: Record<string, any> = {};
+    
+    // Use the typed parameter object with the RPC call
     const { data, error } = await supabase.rpc(
-      'get_cart_items_with_products'
+      'get_cart_items_with_products',
+      params
     ) as any;
 
     if (error || !data) {
