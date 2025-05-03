@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SavedItem } from '@/types/product';
 import { addToCart } from './cartService';
@@ -13,14 +12,7 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    // Create a properly typed parameter object (even if empty)
-    const params: Record<string, any> = {};
-    
-    // Use the typed parameter object with the RPC call
-    const { data, error } = await supabase.rpc(
-      'get_saved_items_with_products',
-      params
-    ) as any;
+    const { data, error } = await supabase.rpc('get_saved_items_with_products');
     
     if (error || !data) {
       console.error('Error fetching saved items:', error);

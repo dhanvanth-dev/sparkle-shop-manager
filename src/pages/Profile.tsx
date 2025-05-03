@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -47,20 +46,15 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Create a properly typed parameter object
-      const params: Record<string, any> = {
-        user_id: user.id,
-        new_full_name: data.fullName
-      };
-
-      // Use the typed parameter object with the RPC call
       const { error } = await supabase.rpc(
         'update_user_profile',
-        params
-      ) as any;
+        {
+          user_id: user.id,
+          new_full_name: data.fullName
+        }
+      );
 
       if (error) {
-        // Fall back to direct update with type assertion if rpc fails
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
@@ -72,7 +66,6 @@ const Profile: React.FC = () => {
         if (updateError) throw updateError;
       }
 
-      // Refresh the profile data after update
       await refreshProfile(user.id);
       toast.success('Profile updated successfully');
     } catch (error: any) {
