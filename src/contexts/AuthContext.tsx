@@ -31,20 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-  
         setUser(session?.user || null);
-  
+
         if (session?.user) {
           await refreshProfile(session.user.id);
-          
-          // Check if user is an admin
           if (session.user.email) {
             const adminStatus = await checkAdminStatus(session.user.email);
             setIsAdmin(adminStatus);
+            if (adminStatus) navigate('/admin/dashboard');
           }
         }
       } catch (error) {
-        console.error('Error loading session:', error);
+        console.error('Session load error:', error);
       } finally {
         setLoading(false);
       }
@@ -54,10 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user || null);
+      
       if (session?.user) {
         await refreshProfile(session.user.id);
-        
-        // Check if user is an admin
         if (session.user.email) {
           const adminStatus = await checkAdminStatus(session.user.email);
           setIsAdmin(adminStatus);
@@ -69,27 +66,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
+
+  const checkAdminStatus = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('admins')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      return !!data && !error;
+    } catch (error) {
+      console.error('Admin check error:', error);
+      return false;
+    }
+  };
 
   const signIn = async (email?: string, password?: string) => {
     if (email && password) {
-      // Email/password sign in
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } else {
-      // OAuth sign in with Google
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
     }
   };
@@ -98,71 +100,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName
-        }
-      }
+      options: { data: { full_name: fullName } }
     });
-    
     if (error) throw error;
   };
-  
+
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      
-      // Clear user state
       setUser(null);
       setProfile(null);
       setIsAdmin(false);
-      
-      // Clear all auth-related items from local storage
-      // This is a more thorough approach to ensure complete logout
-      const keysToRemove = [
-        'supabase.auth.token',
-        'supabase.auth.expires_at',
-        'supabase.auth.refresh_token',
-        'sb-hgdcneupkjiidjahpszh-auth-token',
-        'supabase.auth.callback_url'
-      ];
-      
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-      });
-      
-      // Also clear all items that start with 'supabase.auth.'
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('supabase.auth.') || key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
+      localStorage.clear();
       toast.success('Logged out successfully');
       navigate('/auth');
     } catch (error) {
-      console.error('Error during sign out:', error);
-      toast.error('Failed to log out');
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
     }
   };
 
-  const refreshProfile = async (id: string) => {
+  const refreshProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc(
-        'get_profile_by_id', 
-        { user_id: id }
-      );
-
-      // Check if data exists and is an array with entries
+      // Fix the TypeScript error by using an object parameter
+      const { data, error } = await supabase.rpc('get_profile_by_id', { 
+        user_id: userId 
+      });
+      
       if (data && Array.isArray(data) && data.length > 0) {
         setProfile(data[0]);
       } else {
@@ -170,30 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Profile refresh error:', error);
       setProfile(null);
-    }
-  };
-
-  // Check if the user is an admin by querying the admins table
-  const checkAdminStatus = async (email: string): Promise<boolean> => {
-    try {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (adminError || !adminData) {
-        console.log('User is not an admin');
-        return false;
-      }
-      
-      console.log('User is an admin');
-      return true;
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      return false;
     }
   };
 
@@ -215,8 +164,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };

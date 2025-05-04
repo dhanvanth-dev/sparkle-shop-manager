@@ -24,7 +24,6 @@ const Login: React.FC = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
   useEffect(() => {
-    // Redirect if user is already logged in as admin
     if (user && isAdmin) {
       navigate('/admin/dashboard');
     }
@@ -33,70 +32,36 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      // First, check if the email exists in the admins table
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', data.email)
-        .maybeSingle();
-        
-      if (adminError) {
-        throw new Error('Error checking admin status');
-      }
-      
-      if (!adminData) {
-        toast.error('Invalid admin credentials');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Check if password matches
-      if (adminData.password !== data.password) {
-        toast.error('Invalid admin credentials');
-        setIsLoading(false);
-        return;
-      }
-      
-      // If admin exists and password matches, sign in with Supabase Auth
-      const { error } = await supabase.auth.signInWithPassword({
+      // Step 1: Authenticate with Supabase Auth
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });
-      
-      if (error) {
-        // If auth error, try signup (admin might not have an auth account yet)
-        const { error: signupError } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              is_admin: true
-            }
-          }
-        });
-        
-        if (signupError) {
-          throw signupError;
-        }
-        
-        toast.success('Admin account created and signed in');
-        
-        // We need to manually update admin status since the auth state change might not have fired yet
-        const { error: updateError } = await supabase
-          .from('admins')
-          .update({ created_at: new Date().toISOString() })
-          .eq('email', data.email);
-          
-        if (updateError) {
-          console.error('Error updating admin:', updateError);
-        }
-      } else {
-        toast.success('Signed in as admin');
+
+      if (authError) {
+        toast.error('Invalid credentials');
+        setIsLoading(false);
+        return;
       }
-      
+
+      // Step 2: Verify admin status
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('email')
+        .eq('email', data.email)
+        .maybeSingle();
+
+      if (adminError || !adminData) {
+        await supabase.auth.signOut();
+        toast.error('Not authorized as admin');
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success('Admin login successful');
       navigate('/admin/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -108,7 +73,7 @@ const Login: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Admin Login</CardTitle>
-          <CardDescription>Sign in to access the admin dashboard</CardDescription>
+          <CardDescription>Restricted access to authorized personnel only</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -117,12 +82,12 @@ const Login: React.FC = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder="admin@example.com"
                 {...register('email', {
                   required: 'Email is required',
                   pattern: {
                     value: /\S+@\S+\.\S+/,
-                    message: 'Invalid email address',
+                    message: 'Invalid email format',
                   },
                 })}
               />
@@ -136,8 +101,13 @@ const Login: React.FC = () => {
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 {...register('password', {
                   required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
                 })}
               />
               {errors.password && (
@@ -147,16 +117,16 @@ const Login: React.FC = () => {
 
             <Button
               type="submit"
-              className="w-full bg-gold hover:bg-gold-dark"
+              className="w-full bg-primary hover:bg-primary-dark"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
                   <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Authenticating...
                 </>
               ) : (
-                'Sign In'
+                'Access Dashboard'
               )}
             </Button>
           </form>

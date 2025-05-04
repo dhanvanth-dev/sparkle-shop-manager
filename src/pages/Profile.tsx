@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -47,6 +48,7 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
+      // Fix TypeScript error by using an object parameter
       const { error } = await supabase.rpc(
         'update_user_profile',
         {

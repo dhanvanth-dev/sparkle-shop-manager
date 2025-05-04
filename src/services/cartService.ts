@@ -1,174 +1,170 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { CartItem } from '@/types/product';
 import { toast } from 'sonner';
+import { CartItem, Product } from '@/types/product';
 
-/**
- * Get all items in the cart for the current user
- */
-export const getCartItems = async (): Promise<CartItem[]> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user?.user) return [];
-
+export const fetchCartItems = async (userId: string) => {
   try {
-    const { data, error } = await supabase.rpc('get_cart_items_with_products', {}) as any;
-
-    if (error || !data) {
+    // Fix TypeScript error by using an object parameter
+    const { data, error } = await supabase.rpc(
+      'get_cart_items_with_products', 
+      { user_id: userId }
+    );
+    
+    if (error) {
       console.error('Error fetching cart items:', error);
       return [];
     }
-
-    return data;
+    
+    return data || [];
   } catch (error) {
-    console.error('Error in getCartItems:', error);
+    console.error('Error in fetchCartItems:', error);
     return [];
   }
 };
 
-/**
- * Add a product to the cart
- */
-export const addToCart = async (productId: string): Promise<boolean> => {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) return false;
-
+export const addToCart = async (userId: string, productId: string) => {
   try {
-    // Check if product is already in cart
-    const { data: existingItems } = await supabase
+    // Check if the item already exists in the cart
+    const { data: existingItems, error: checkError } = await supabase
       .from('cart_items')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .eq('product_id', productId) as any;
-
-    if (existingItems?.length > 0) {
-      // Update quantity if already in cart
-      const currentQuantity = existingItems[0].quantity || 0;
+      .select('id, quantity')
+      .eq('user_id', userId)
+      .eq('product_id', productId);
+    
+    if (checkError) {
+      console.error('Error checking cart item:', checkError);
+      throw checkError;
+    }
+    
+    if (existingItems && existingItems.length > 0) {
+      // Item exists, update quantity
+      const { error: updateError } = await supabase
+        .from('cart_items')
+        .update({ 
+          quantity: existingItems[0].quantity + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingItems[0].id);
       
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity: currentQuantity + 1 })
-        .eq('id', existingItems[0].id) as any;
-
-      return !error;
+      if (updateError) {
+        console.error('Error updating cart item:', updateError);
+        throw updateError;
+      }
+      
+      toast.success('Item quantity updated in cart');
     } else {
-      // Add new item to cart
-      const { error } = await supabase
+      // Item doesn't exist, add new item
+      const { error: insertError } = await supabase
         .from('cart_items')
-        .insert({
-          user_id: user.user.id,
+        .insert({ 
+          user_id: userId, 
           product_id: productId,
           quantity: 1
-        }) as any;
-
-      return !error;
+        });
+      
+      if (insertError) {
+        console.error('Error adding item to cart:', insertError);
+        throw insertError;
+      }
+      
+      toast.success('Item added to cart');
     }
+    
+    return true;
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    console.error('Error in addToCart:', error);
     toast.error('Failed to add item to cart');
     return false;
   }
 };
 
-/**
- * Update the quantity of an item in the cart
- */
-export const updateCartItemQuantity = async (itemId: string, quantity: number): Promise<boolean> => {
-  if (quantity < 1) {
-    return removeFromCart(itemId);
-  }
-
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) return false;
-
+export const updateCartItemQuantity = async (itemId: string, quantity: number) => {
   try {
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ quantity })
-      .eq('id', itemId)
-      .eq('user_id', user.user.id) as any;
-
-    return !error;
-  } catch (error) {
-    console.error('Error updating cart item quantity:', error);
-    return false;
-  }
-};
-
-/**
- * Remove an item from the cart
- */
-export const removeFromCart = async (itemId: string): Promise<boolean> => {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) return false;
-
-  try {
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', itemId)
-      .eq('user_id', user.user.id) as any;
-
-    return !error;
-  } catch (error) {
-    console.error('Error removing from cart:', error);
-    return false;
-  }
-};
-
-/**
- * Clear the cart
- */
-export const clearCart = async (): Promise<boolean> => {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) return false;
-
-  try {
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('user_id', user.user.id) as any;
-
-    return !error;
-  } catch (error) {
-    console.error('Error clearing cart:', error);
-    return false;
-  }
-};
-
-/**
- * Move an item from cart to saved items
- */
-export const moveToSavedItems = async (itemId: string, productId: string): Promise<boolean> => {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) return false;
-  
-  try {
-    // Create a saved item
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 90); // Save for 90 days
-
-    const { error: saveError } = await supabase
-      .from('saved_items')
-      .insert({
-        user_id: user.user.id,
-        product_id: productId,
-        expires_at: expiryDate.toISOString()
-      }) as any;
-
-    if (saveError) {
-      console.error('Error moving item to saved items:', saveError);
-      return false;
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or less
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) {
+        console.error('Error removing cart item:', error);
+        throw error;
+      }
+      
+      toast.success('Item removed from cart');
+      return true;
     }
-
-    // Remove from cart
-    return await removeFromCart(itemId);
+    
+    // Update quantity
+    const { error } = await supabase
+      .from('cart_items')
+      .update({ 
+        quantity,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', itemId);
+    
+    if (error) {
+      console.error('Error updating cart item:', error);
+      throw error;
+    }
+    
+    return true;
   } catch (error) {
-    console.error('Error moving item to saved items:', error);
+    console.error('Error in updateCartItemQuantity:', error);
+    toast.error('Failed to update cart');
     return false;
   }
+};
+
+export const removeFromCart = async (itemId: string) => {
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', itemId);
+    
+    if (error) {
+      console.error('Error removing cart item:', error);
+      throw error;
+    }
+    
+    toast.success('Item removed from cart');
+    return true;
+  } catch (error) {
+    console.error('Error in removeFromCart:', error);
+    toast.error('Failed to remove item from cart');
+    return false;
+  }
+};
+
+export const clearCart = async (userId: string) => {
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Error clearing cart:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in clearCart:', error);
+    return false;
+  }
+};
+
+export const getCartTotal = (items: CartItem[]): number => {
+  return items.reduce((total, item) => {
+    return total + (item.product.price * item.quantity);
+  }, 0);
+};
+
+export const getCartItemsCount = (items: CartItem[]): number => {
+  return items.reduce((count, item) => count + item.quantity, 0);
 };
