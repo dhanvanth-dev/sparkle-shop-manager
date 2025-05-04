@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfile } from '@/types/product';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -38,6 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session.user.email) {
             const adminStatus = await checkAdminStatus(session.user.email);
             setIsAdmin(adminStatus);
+            
+            // If user is an admin and on auth page, redirect to admin dashboard
+            const isAdminRoute = location.pathname.startsWith('/admin');
+            if (adminStatus && !isAdminRoute && location.pathname !== '/') {
+              navigate('/admin/dashboard');
+            }
           }
         }
       } catch (error) {
@@ -66,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, location.pathname]);
 
   const checkAdminStatus = async (email: string): Promise<boolean> => {
     try {
@@ -85,8 +92,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email?: string, password?: string) => {
     if (email && password) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error('Invalid credentials');
+        throw error;
+      }
+      
+      // Check admin status after login
+      if (data?.user?.email) {
+        const adminStatus = await checkAdminStatus(data.user.email);
+        setIsAdmin(adminStatus);
+      }
     } else {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -113,7 +129,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
       setProfile(null);
       setIsAdmin(false);
@@ -128,18 +146,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (userId: string) => {
     try {
-      // Fix TypeScript error by using an object parameter
-      const { data, error } = await supabase.rpc(
-        'get_profile_by_id', 
-        { user_id: userId }
-      );
+      // Fix TypeScript error by using an object parameter for RPC call
+      const { data, error } = await supabase.rpc('get_profile_by_id', { 
+        user_id: userId 
+      });
       
       if (data && Array.isArray(data) && data.length > 0) {
         setProfile(data[0]);
       } else {
-        console.error('No profile data found or error:', error);
         setProfile(null);
       }
+      
+      if (error) throw error;
     } catch (error) {
       console.error('Profile refresh error:', error);
       setProfile(null);

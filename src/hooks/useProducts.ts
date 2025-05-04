@@ -1,10 +1,11 @@
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { getProducts } from '@/services/productService';
-import { Product } from '@/types/product';
 
 export const useProducts = () => {
+  const queryClient = useQueryClient();
+  
   const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: getProducts,
@@ -17,12 +18,16 @@ export const useProducts = () => {
   useEffect(() => {
     // Force refetch on component mount to ensure fresh data
     refetch();
-  }, [refetch]);
+    
+    // Also invalidate the query cache on mount to force a refetch
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+  }, [refetch, queryClient]);
 
   return {
     products: products || [],
     isLoading,
     error,
-    refetch
+    refetch,
+    refreshProducts: () => queryClient.invalidateQueries({ queryKey: ['products'] })
   };
 };

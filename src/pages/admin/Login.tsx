@@ -6,11 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { LucideLoader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { createTestAdmin } from '@/services/adminService';
 
 interface LoginFormData {
   email: string;
@@ -19,61 +18,45 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, refreshProfile, checkAdminStatus } = useAuth();
+  const { user, isAdmin, signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormData>();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
   useEffect(() => {
+    // If user is already authenticated and is admin, redirect to dashboard
     if (user && isAdmin) {
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
     }
-    
-    // Automatically create test admin if needed and populate form fields
-    const setupTestAdmin = async () => {
-      const testAdmin = await createTestAdmin();
-      if (testAdmin) {
-        setValue('email', testAdmin.email);
-        setValue('password', testAdmin.password);
-      }
-    };
-    
-    setupTestAdmin();
-  }, [user, isAdmin, navigate, setValue]);
+  }, [user, isAdmin, navigate]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      // Step 1: Authenticate with Supabase Auth
-      const { data: sessionData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
-      });
+      // Use the signIn method from AuthContext
+      await signIn(data.email, data.password);
+      
+      // Check admin status specifically for this login
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('email')
+        .eq('email', data.email)
+        .maybeSingle();
 
-      if (authError) {
-        toast.error(`Login failed: ${authError.message}`);
+      if (adminError || !adminData) {
+        // If not an admin, sign out and show error
+        await supabase.auth.signOut();
+        toast.error('Not authorized as admin');
         setIsLoading(false);
         return;
       }
 
-      // Step 2: Verify admin status
-      if (sessionData.user) {
-        await refreshProfile(sessionData.user.id);
-        const adminStatus = await checkAdminStatus(data.email);
-        
-        if (!adminStatus) {
-          await supabase.auth.signOut();
-          toast.error('Not authorized as admin');
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success('Admin login successful');
-        navigate('/admin/dashboard');
-      }
+      // Successfully authenticated as admin
+      toast.success('Admin login successful');
+      navigate('/admin/dashboard', { replace: true });
     } catch (error: any) {
-      console.error('Login error:', error);
       toast.error('Login failed. Please try again.');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +98,10 @@ const Login: React.FC = () => {
                 placeholder="••••••••"
                 {...register('password', {
                   required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
                 })}
               />
               {errors.password && (
@@ -129,7 +116,7 @@ const Login: React.FC = () => {
             >
               {isLoading ? (
                 <>
-                  <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Authenticating...
                 </>
               ) : (

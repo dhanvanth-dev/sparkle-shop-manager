@@ -2,14 +2,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/product';
+import { saveItem } from './savedItemsService';
 
 export const fetchCartItems = async (userId: string) => {
   try {
-    // Fix TypeScript error by using an object parameter
-    const { data, error } = await supabase.rpc(
-      'get_cart_items_with_products', 
-      { user_id: userId }
-    );
+    // Using proper object parameter to fix TypeScript error
+    const { data, error } = await supabase.rpc('get_cart_items_with_products', { 
+      user_id: userId 
+    });
     
     if (error) {
       console.error('Error fetching cart items:', error);
@@ -128,6 +128,32 @@ export const removeCartItem = async (itemId: string) => {
   } catch (error) {
     console.error('Error in removeCartItem:', error);
     toast.error('Failed to remove item');
+    return false;
+  }
+};
+
+// Alias for compatibility with Cart.tsx
+export const removeFromCart = removeCartItem;
+
+export const moveToSavedItems = async (userId: string, cartItemId: string, productId: string) => {
+  try {
+    // First save the item
+    const savedSuccess = await saveItem(userId, productId);
+    
+    if (savedSuccess) {
+      // Then remove from cart
+      const removeSuccess = await removeCartItem(cartItemId);
+      
+      if (removeSuccess) {
+        toast.success('Item moved to saved items');
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error moving item to saved:', error);
+    toast.error('Failed to move item');
     return false;
   }
 };
