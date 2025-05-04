@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.rpc(
         'get_profile_by_id', 
         { user_id: id }
-      ) as any;
+      );
 
       // Check if data exists and is an array with entries
       if (data && Array.isArray(data) && data.length > 0) {

@@ -74,6 +74,7 @@ export type Database = {
       }
       products: {
         Row: {
+          additional_images: string[] | null
           category: string
           created_at: string | null
           description: string | null
@@ -85,8 +86,10 @@ export type Database = {
           name: string
           price: number
           updated_at: string | null
+          video_url: string | null
         }
         Insert: {
+          additional_images?: string[] | null
           category: string
           created_at?: string | null
           description?: string | null
@@ -98,8 +101,10 @@ export type Database = {
           name: string
           price: number
           updated_at?: string | null
+          video_url?: string | null
         }
         Update: {
+          additional_images?: string[] | null
           category?: string
           created_at?: string | null
           description?: string | null
@@ -111,6 +116,7 @@ export type Database = {
           name?: string
           price?: number
           updated_at?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }

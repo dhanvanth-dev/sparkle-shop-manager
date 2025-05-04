@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card } from '@/components/ui/card';
@@ -13,8 +13,7 @@ import {
   CarouselPrevious,
   CarouselNext
 } from '@/components/ui/carousel';
-import { getProducts } from '@/services/productService';
-import { Product } from '@/types/product';
+import { useProducts } from '@/hooks/useProducts';
 
 const heroSlides = [
   {
@@ -38,21 +37,7 @@ const heroSlides = [
 ];
 
 const Home: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
-  
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const products = await getProducts();
-        setLatestProducts(products);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProducts();
-  }, []);
+  const { products: latestProducts, isLoading: loading } = useProducts();
   
   return (
     <Layout>

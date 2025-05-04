@@ -53,7 +53,7 @@ const Profile: React.FC = () => {
           user_id: user.id,
           new_full_name: data.fullName
         }
-      ) as any;
+      );
 
       if (error) {
         const { error: updateError } = await supabase

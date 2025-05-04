@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SavedItem } from '@/types/product';
 import { addToCart } from './cartService';
@@ -13,8 +12,8 @@ export const getSavedItems = async (): Promise<SavedItem[]> => {
   if (!user?.user) return [];
 
   try {
-    const { data, error } = await supabase.rpc('get_saved_items_with_products', {}) as any;
-    
+    const { data, error } = await supabase.rpc('get_saved_items_with_products', {});
+
     if (error || !data) {
       console.error('Error fetching saved items:', error);
       return [];

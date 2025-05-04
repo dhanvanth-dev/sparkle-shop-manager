@@ -80,6 +80,16 @@ const Login: React.FC = () => {
         }
         
         toast.success('Admin account created and signed in');
+        
+        // We need to manually update admin status since the auth state change might not have fired yet
+        const { error: updateError } = await supabase
+          .from('admins')
+          .update({ created_at: new Date().toISOString() })
+          .eq('email', data.email);
+          
+        if (updateError) {
+          console.error('Error updating admin:', updateError);
+        }
       } else {
         toast.success('Signed in as admin');
       }
