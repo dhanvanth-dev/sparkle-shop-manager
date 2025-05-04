@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session.user.email) {
             const adminStatus = await checkAdminStatus(session.user.email);
             setIsAdmin(adminStatus);
-            if (adminStatus) navigate('/admin/dashboard');
           }
         }
       } catch (error) {
@@ -129,10 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (userId: string) => {
     try {
-      // Fix the TypeScript error by using an object parameter
-      const { data, error } = await supabase.rpc('get_profile_by_id', { 
-        user_id: userId 
-      });
+      // Fix TypeScript error by using an object parameter
+      const { data, error } = await supabase.rpc(
+        'get_profile_by_id', 
+        { user_id: userId }
+      );
       
       if (data && Array.isArray(data) && data.length > 0) {
         setProfile(data[0]);

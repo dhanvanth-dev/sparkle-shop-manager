@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { CartItem } from '@/types/product';
 import { 
-  getCartItems, 
+  fetchCartItems as getCartItems, 
   updateCartItemQuantity, 
   removeFromCart,
   moveToSavedItems
@@ -38,7 +38,7 @@ const Cart: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const items = await getCartItems();
+      const items = await getCartItems(user.id);
       setCartItems(items);
     } catch (error) {
       toast.error('Failed to load cart items');

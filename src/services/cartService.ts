@@ -23,6 +23,9 @@ export const fetchCartItems = async (userId: string) => {
   }
 };
 
+// Alias for fetchCartItems to maintain compatibility with existing code
+export const getCartItems = fetchCartItems;
+
 export const addToCart = async (userId: string, productId: string) => {
   try {
     // Check if the item already exists in the cart
@@ -167,4 +170,46 @@ export const getCartTotal = (items: CartItem[]): number => {
 
 export const getCartItemsCount = (items: CartItem[]): number => {
   return items.reduce((count, item) => count + item.quantity, 0);
+};
+
+// Add the missing moveToSavedItems function
+export const moveToSavedItems = async (cartItemId: string, productId: string) => {
+  try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('You must be logged in');
+      return false;
+    }
+
+    // Save item to saved_items table
+    const { error: saveError } = await supabase
+      .from('saved_items')
+      .insert({ 
+        user_id: user.id,
+        product_id: productId
+      });
+    
+    if (saveError) {
+      console.error('Error saving item:', saveError);
+      throw saveError;
+    }
+    
+    // Remove item from cart
+    const { error: removeError } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', cartItemId);
+    
+    if (removeError) {
+      console.error('Error removing item from cart:', removeError);
+      throw removeError;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in moveToSavedItems:', error);
+    toast.error('Failed to save item for later');
+    return false;
+  }
 };

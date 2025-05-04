@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -22,6 +21,7 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading, profile, refreshProfile, isAdmin, signOut } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -82,6 +82,20 @@ const Profile: React.FC = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  const refreshUserProfile = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      await refreshProfile(user.id);
+      toast.success('Profile refreshed');
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      toast.error('Failed to refresh profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (loading || !profile) {

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCartItems, clearCart } from '@/services/cartService';
+import { fetchCartItems as getCartItems, clearCart } from '@/services/cartService';
 import { CartItem } from '@/types/product';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, CreditCard, LucideLoader2, TruckIcon } from 'lucide-react';
@@ -55,9 +55,10 @@ const Checkout: React.FC = () => {
   }, [profile, setValue]);
   
   const loadCartItems = async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
-      const items = await getCartItems();
+      const items = await getCartItems(user.id);
       setCartItems(items);
       
       if (items.length === 0) {
@@ -96,6 +97,7 @@ const Checkout: React.FC = () => {
   };
   
   const onSubmit = async (data: CheckoutFormData) => {
+    if (!user) return;
     setIsProcessing(true);
     
     try {
@@ -103,7 +105,7 @@ const Checkout: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Clear the cart
-      const success = await clearCart();
+      const success = await clearCart(user.id);
       
       if (success) {
         setOrderComplete(true);

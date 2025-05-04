@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LucideLoader2, Trash2, ShoppingCart, Heart } from 'lucide-react';
+import { LucideLoader2, X, ShoppingCart, HeartOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { SavedItem } from '@/types/product';
 import { 
-  getSavedItems, 
-  removeFromSavedItems, 
+  fetchSavedItems as getSavedItems, 
+  removeFromSavedItems,
   moveToCart 
 } from '@/services/savedItemsService';
+import { toast } from 'sonner';
 
 const SavedItems: React.FC = () => {
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ const SavedItems: React.FC = () => {
         
         {savedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Heart className="h-16 w-16 text-gray-400 mb-4" />
+            <HeartOff className="h-16 w-16 text-gray-400 mb-4" />
             <h2 className="text-xl font-medium mb-2">No saved items</h2>
             <p className="text-gray-500 mb-6">Items you save will appear here</p>
             <Button onClick={() => navigate('/collections')} className="bg-gold hover:bg-gold-dark">
@@ -145,7 +147,7 @@ const SavedItems: React.FC = () => {
                           {processingItems[item.id] ? (
                             <LucideLoader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Trash2 size={14} />
+                            <X size={14} />
                           )}
                         </Button>
                       </div>
