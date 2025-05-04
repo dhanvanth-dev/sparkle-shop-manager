@@ -8,7 +8,7 @@ export const useProducts = () => {
   const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: getProducts,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Set to 0 to refetch on each mount
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,

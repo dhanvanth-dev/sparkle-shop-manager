@@ -33,10 +33,18 @@ const SavedItems: React.FC = () => {
   }, [user, loading, navigate]);
 
   const loadSavedItems = async () => {
-    setIsLoading(true);
-    const items = await getSavedItems();
-    setSavedItems(items);
-    setIsLoading(false);
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const items = await getSavedItems(user.id); // Fix: Pass the user.id parameter
+      setSavedItems(items || []);
+    } catch (error) {
+      console.error('Error loading saved items:', error);
+      toast.error('Failed to load saved items');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRemoveItem = async (itemId: string) => {

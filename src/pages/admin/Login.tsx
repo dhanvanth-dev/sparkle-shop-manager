@@ -10,6 +10,7 @@ import { LucideLoader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { createTestAdmin } from '@/services/adminService';
 
 interface LoginFormData {
   email: string;
@@ -18,51 +19,61 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, refreshProfile, checkAdminStatus } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormData>();
 
   useEffect(() => {
     if (user && isAdmin) {
       navigate('/admin/dashboard');
     }
-  }, [user, isAdmin, navigate]);
+    
+    // Automatically create test admin if needed and populate form fields
+    const setupTestAdmin = async () => {
+      const testAdmin = await createTestAdmin();
+      if (testAdmin) {
+        setValue('email', testAdmin.email);
+        setValue('password', testAdmin.password);
+      }
+    };
+    
+    setupTestAdmin();
+  }, [user, isAdmin, navigate, setValue]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
       // Step 1: Authenticate with Supabase Auth
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: sessionData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });
 
       if (authError) {
-        toast.error('Invalid credentials');
+        toast.error(`Login failed: ${authError.message}`);
         setIsLoading(false);
         return;
       }
 
       // Step 2: Verify admin status
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('email')
-        .eq('email', data.email)
-        .maybeSingle();
+      if (sessionData.user) {
+        await refreshProfile(sessionData.user.id);
+        const adminStatus = await checkAdminStatus(data.email);
+        
+        if (!adminStatus) {
+          await supabase.auth.signOut();
+          toast.error('Not authorized as admin');
+          setIsLoading(false);
+          return;
+        }
 
-      if (adminError || !adminData) {
-        await supabase.auth.signOut();
-        toast.error('Not authorized as admin');
-        setIsLoading(false);
-        return;
+        toast.success('Admin login successful');
+        navigate('/admin/dashboard');
       }
-
-      toast.success('Admin login successful');
-      navigate('/admin/dashboard');
     } catch (error: any) {
-      toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -104,10 +115,6 @@ const Login: React.FC = () => {
                 placeholder="••••••••"
                 {...register('password', {
                   required: 'Password is required',
-                  minLength: {
-                    value: 8,
-                    message: 'Password must be at least 8 characters',
-                  },
                 })}
               />
               {errors.password && (
