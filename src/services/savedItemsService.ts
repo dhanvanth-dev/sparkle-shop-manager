@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export const getSavedItems = async (userId: string) => {
   try {
-    // Fix TypeScript error by using an object parameter
+    // Fix TypeScript error by using properly typed object parameter
     const { data, error } = await supabase.rpc(
       'get_saved_items_with_products',
       { user_id: userId }
@@ -22,6 +22,9 @@ export const getSavedItems = async (userId: string) => {
     return [];
   }
 };
+
+// Create alias for compatibility with SavedItems.tsx
+export const fetchSavedItems = getSavedItems;
 
 export const saveItem = async (userId: string, productId: string) => {
   try {
@@ -102,6 +105,9 @@ export const unsaveItem = async (itemId: string) => {
     return false;
   }
 };
+
+// Add removeFromSavedItems as alias for unsaveItem for compatibility
+export const removeFromSavedItems = unsaveItem;
 
 export const moveToCart = async (userId: string, savedItemId: string, productId: string) => {
   try {

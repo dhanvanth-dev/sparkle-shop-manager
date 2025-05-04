@@ -6,7 +6,7 @@ import { saveItem } from './savedItemsService';
 
 export const fetchCartItems = async (userId: string) => {
   try {
-    // Using proper object parameter to fix TypeScript error
+    // Using properly typed object parameter to fix TypeScript error
     const { data, error } = await supabase.rpc('get_cart_items_with_products', { 
       user_id: userId 
     });

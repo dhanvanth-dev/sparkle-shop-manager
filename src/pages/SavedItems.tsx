@@ -1,19 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LucideLoader2, X, ShoppingCart, HeartOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { SavedItem } from '@/types/product';
 import { 
-  fetchSavedItems as getSavedItems, 
+  getSavedItems, 
   removeFromSavedItems,
   moveToCart 
 } from '@/services/savedItemsService';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
 
 const SavedItems: React.FC = () => {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ const SavedItems: React.FC = () => {
     
     try {
       setIsLoading(true);
-      const items = await getSavedItems(user.id); // Fix: Pass the user.id parameter
+      const items = await getSavedItems(user.id);
       setSavedItems(items || []);
     } catch (error) {
       console.error('Error loading saved items:', error);
@@ -60,20 +61,13 @@ const SavedItems: React.FC = () => {
 
   const handleMoveToCart = async (item: SavedItem) => {
     setProcessingItems(prev => ({ ...prev, [item.id]: true }));
-    const success = await moveToCart(item.id, item.product_id);
+    const success = await moveToCart(user.id, item.id, item.product_id);
     
     if (success) {
       setSavedItems(prev => prev.filter(i => i.id !== item.id));
     }
     
     setProcessingItems(prev => ({ ...prev, [item.id]: false }));
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount / 100); // Assuming price is stored in cents
   };
 
   if (loading || (user && isLoading)) {

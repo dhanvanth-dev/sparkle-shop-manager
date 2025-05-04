@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -8,8 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LucideLoader2, Save } from 'lucide-react';
+import { LucideLoader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfileFormData {
@@ -48,7 +48,7 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      // Fix TypeScript error by using an object parameter
+      // Fix TypeScript error by using a properly typed object parameter
       const { error } = await supabase.rpc(
         'update_user_profile',
         {

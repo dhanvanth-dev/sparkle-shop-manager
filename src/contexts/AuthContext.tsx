@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (userId: string) => {
     try {
-      // Fix TypeScript error by using an object parameter for RPC call
+      // Fix TypeScript error by using a properly typed object parameter for RPC call
       const { data, error } = await supabase.rpc('get_profile_by_id', { 
         user_id: userId 
       });

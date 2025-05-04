@@ -9,12 +9,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { CartItem } from '@/types/product';
 import { 
-  fetchCartItems as getCartItems, 
+  getCartItems, 
   updateCartItemQuantity, 
   removeFromCart,
   moveToSavedItems
 } from '@/services/cartService';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ const Cart: React.FC = () => {
   const handleSaveForLater = async (item: CartItem) => {
     setProcessingItems(prev => ({ ...prev, [item.id]: true }));
     try {
-      const success = await moveToSavedItems(item.id, item.product_id);
+      const success = await moveToSavedItems(user.id, item.id, item.product_id);
       
       if (success) {
         setCartItems(prev => prev.filter(cartItem => cartItem.id !== item.id));
@@ -113,13 +114,6 @@ const Cart: React.FC = () => {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount);
   };
 
   if (loading || (user && isLoading)) {
