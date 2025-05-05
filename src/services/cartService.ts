@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/product';
@@ -5,17 +6,21 @@ import { saveItem } from './savedItemsService';
 
 export const fetchCartItems = async (userId: string) => {
   try {
-    // Using properly typed object parameter to fix TypeScript error
-    const { data, error } = await supabase.rpc('get_cart_items_with_products', { 
-      user_id: userId 
-    });
+    // Using a direct query instead of RPC to fix TypeScript error
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select(`
+        *,
+        product:products(*)
+      `)
+      .eq('user_id', userId);
     
     if (error) {
       console.error('Error fetching cart items:', error);
       return [];
     }
     
-    return data || [];
+    return data as CartItem[] || [];
   } catch (error) {
     console.error('Error in fetchCartItems:', error);
     return [];

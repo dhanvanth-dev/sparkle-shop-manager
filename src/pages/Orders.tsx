@@ -10,6 +10,7 @@ import { LucideLoader2, PackageCheck, ShoppingBag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 interface OrderItem {
   id: string;
@@ -23,7 +24,7 @@ interface OrderItem {
   };
 }
 
-interface Order {
+export interface Order {
   id: string;
   user_id: string;
   amount: number;
@@ -42,6 +43,16 @@ interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+}
+
+// Type guard to ensure proper Order type
+function isValidOrder(order: any): order is Order {
+  return (
+    order && 
+    typeof order.id === 'string' &&
+    typeof order.shipping_address === 'object' &&
+    typeof order.shipping_address.fullName === 'string'
+  );
 }
 
 const statusColors: Record<string, string> = {
@@ -78,7 +89,22 @@ const Orders: React.FC = () => {
         throw error;
       }
       
-      setOrders(data || []);
+      // Process and validate the data to ensure it matches our Order type
+      const validOrders = Array.isArray(data) ? 
+        data.map(order => {
+          // Convert JSONB shipping_address to our expected format
+          const shippingAddress = typeof order.shipping_address === 'object' 
+            ? order.shipping_address 
+            : JSON.parse(order.shipping_address as string);
+            
+          return {
+            ...order,
+            shipping_address: shippingAddress,
+            items: Array.isArray(order.items) ? order.items : []
+          };
+        }).filter(isValidOrder) : [];
+        
+      setOrders(validOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
       toast.error('Could not load your orders');

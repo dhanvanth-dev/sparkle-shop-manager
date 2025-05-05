@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -48,25 +47,15 @@ const Profile: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      const { error } = await supabase.rpc(
-        'update_user_profile',
-        {
-          user_id: user.id,
-          new_full_name: data.fullName
-        }
-      );
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.fullName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
 
-      if (error) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: data.fullName,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', user.id) as any;
-        
-        if (updateError) throw updateError;
-      }
+      if (error) throw error;
 
       await refreshProfile(user.id);
       toast.success('Profile updated successfully');

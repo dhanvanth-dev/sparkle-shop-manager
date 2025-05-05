@@ -40,7 +40,10 @@ const Cart: React.FC = () => {
     setIsLoading(true);
     try {
       const items = await getCartItems(user.id);
-      setCartItems(items);
+      // Ensure we're only setting CartItem[] type data
+      if (Array.isArray(items)) {
+        setCartItems(items);
+      }
     } catch (error) {
       toast.error('Failed to load cart items');
       console.error('Error loading cart items:', error);

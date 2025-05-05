@@ -1,14 +1,18 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { addToCart } from './cartService';
 import { toast } from 'sonner';
 
 export const getSavedItems = async (userId: string) => {
   try {
-    // Fix TypeScript error by using properly typed object parameter
-    const { data, error } = await supabase.rpc(
-      'get_saved_items_with_products',
-      {}
-    );
+    // Using a direct query instead of RPC to fix TypeScript error
+    const { data, error } = await supabase
+      .from('saved_items')
+      .select(`
+        *,
+        product:products(*)
+      `)
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error fetching saved items:', error);

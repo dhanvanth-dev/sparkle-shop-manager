@@ -39,7 +39,10 @@ const SavedItems: React.FC = () => {
     try {
       setIsLoading(true);
       const items = await getSavedItems(user.id);
-      setSavedItems(items || []);
+      // Ensure we're only setting SavedItem[] type data
+      if (Array.isArray(items)) {
+        setSavedItems(items as SavedItem[]);
+      }
     } catch (error) {
       console.error('Error loading saved items:', error);
       toast.error('Failed to load saved items');

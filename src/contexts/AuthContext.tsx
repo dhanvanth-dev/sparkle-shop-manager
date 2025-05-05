@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -146,13 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc(
-        'get_profile_by_id', 
-        { user_id: userId }
-      );
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
       
-      if (data && Array.isArray(data) && data.length > 0) {
-        setProfile(data[0]);
+      if (data) {
+        setProfile(data as UserProfile);
       } else {
         setProfile(null);
       }
