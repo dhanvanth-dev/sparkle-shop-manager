@@ -97,10 +97,27 @@ const Orders: React.FC = () => {
             ? order.shipping_address 
             : JSON.parse(order.shipping_address as string);
             
+          // Convert items to the proper type with product information
+          const items = Array.isArray(order.items) 
+            ? order.items.map((item: any) => ({
+                id: item.id,
+                product_id: item.product_id,
+                quantity: item.quantity,
+                price: item.price,
+                product: {
+                  id: item.product?.id || '',
+                  name: item.product?.name || '',
+                  image_url: item.product?.image_url || null
+                }
+              }))
+            : [];
+            
           return {
             ...order,
             shipping_address: shippingAddress,
-            items: Array.isArray(order.items) ? order.items : []
+            items: items,
+            payment_id: order.payment_id || null,
+            order_id: order.order_id || null
           };
         }).filter(isValidOrder) : [];
         
