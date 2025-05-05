@@ -1,25 +1,36 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductFormData, assertIsProduct, assertIsProductArray } from '@/types/product';
+import { getCachedData, refreshCachedData } from './cacheService';
 
 /**
  * Get all products
  */
 export const getProducts = async (): Promise<Product[]> => {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false }) as any;
-
-  if (error || !data) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
-
-  // Assert the type safety
-  assertIsProductArray(data);
-  return data as Product[];
+  return getCachedData('products', fetchProductsFromAPI);
 };
+
+/**
+ * Fetch products directly from API, bypassing cache
+ */
+async function fetchProductsFromAPI(): Promise<Product[]> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    // Assert the type safety
+    assertIsProductArray(data);
+    return data as Product[];
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+}
 
 /**
  * Get a product by ID
@@ -122,3 +133,28 @@ export const uploadProductImage = async (file: File): Promise<string | null> => 
 
   return publicUrl;
 };
+
+/**
+ * Start periodic refresh of products data
+ */
+export function startProductsRefresh(intervalMinutes = 30): void {
+  // Initial load
+  getProducts();
+  
+  // Set up interval for periodic refresh
+  const intervalId = setInterval(() => {
+    refreshCachedData('products', () => fetchProductsFromAPI());
+  }, intervalMinutes * 60 * 1000);
+  
+  // Store interval ID to be able to clear it later if needed
+  window.productsRefreshInterval = intervalId;
+}
+
+/**
+ * Stop periodic refresh of products data
+ */
+export function stopProductsRefresh(): void {
+  if (window && window.productsRefreshInterval) {
+    clearInterval(window.productsRefreshInterval);
+  }
+}

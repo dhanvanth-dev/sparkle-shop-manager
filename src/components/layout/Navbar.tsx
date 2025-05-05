@@ -1,209 +1,150 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Heart, ShoppingCart, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuItem 
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { ShoppingBag, Heart, User, Menu, Package, Home, PackagePlus, LayoutDashboard, LogOut } from 'lucide-react';
+import { toast } from 'sonner';
 
-const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
-  const { user, profile, signOut } = useAuth();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location]);
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+const Navbar: React.FC = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, profile, signOut, isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign out');
+    }
   };
-
-  const getInitials = (name: string | null) => {
-    if (!name) return 'U';
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Collections', path: '/collections' },
-    { name: 'About Us', path: '/about' },
-  ];
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-6'
-    }`}>
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-serif font-bold text-charcoal">
+    <nav className="bg-background border-b sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo and Brand */}
+        <Link to="/" className="text-2xl font-bold font-serif">
           Saaral
         </Link>
 
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center space-x-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className={`font-medium transition-colors hover:text-gold ${
-                location.pathname === link.path 
-                  ? 'text-gold border-b-2 border-gold pb-1' 
-                  : 'text-charcoal'
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
-        </div>
-
-        {/* Desktop Right Menu */}
-        <div className="hidden md:flex items-center space-x-4">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-4">
+          <Link to="/" className="hover:text-gold transition-colors">
+            Home
+          </Link>
+          <Link to="/collections" className="hover:text-gold transition-colors">
+            Collections
+          </Link>
           {user ? (
             <>
-              <Link to="/saved-items" className="text-charcoal hover:text-gold transition-colors" aria-label="Saved items">
-                <Heart size={24} />
+              <Link to="/saved-items" className="hover:text-gold transition-colors">
+                Saved Items
               </Link>
-              
-              <Link to="/cart" className="text-charcoal hover:text-gold transition-colors" aria-label="Shopping cart">
-                <ShoppingCart size={24} />
-              </Link>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
-                      <AvatarFallback className="bg-gold text-white">
-                        {getInitials(profile?.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{profile?.full_name}</p>
-                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="cursor-pointer w-full">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/orders" className="cursor-pointer w-full">Orders</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <Link to="/auth">
-              <Button variant="ghost" className="flex items-center">
-                <User size={20} className="mr-2" />
-                Sign In
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        {/* Mobile Menu Button */}
-        <div className="flex items-center space-x-2 md:hidden">
-          {user && (
-            <>
-              <Link to="/saved-items" className="text-charcoal hover:text-gold transition-colors p-2" aria-label="Saved items">
-                <Heart size={20} />
-              </Link>
-              
-              <Link to="/cart" className="text-charcoal hover:text-gold transition-colors p-2" aria-label="Shopping cart">
-                <ShoppingCart size={20} />
-              </Link>
-            </>
-          )}
-          
-          <button 
-            onClick={toggleMenu} 
-            className="text-charcoal hover:text-gold"
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div 
-        className={`fixed inset-0 z-40 bg-white pt-20 transform transition-transform duration-300 ease-in-out ${
-          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } md:hidden`}
-      >
-        <div className="container mx-auto px-4 flex flex-col space-y-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className={`text-xl font-medium transition-colors hover:text-gold ${
-                location.pathname === link.path ? 'text-gold' : 'text-charcoal'
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
-          
-          {user ? (
-            <>
-              <Link
-                to="/profile"
-                className="text-xl font-medium transition-colors hover:text-gold text-charcoal flex items-center"
-              >
-                <User size={20} className="mr-2" />
+              <Link to="/profile" className="hover:text-gold transition-colors">
                 Profile
               </Link>
-              
-              <button
-                onClick={handleSignOut}
-                className="text-xl font-medium transition-colors hover:text-gold text-charcoal text-left"
-              >
-                Log out
-              </button>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                Sign Out
+              </Button>
             </>
           ) : (
-            <Link
-              to="/auth"
-              className="text-xl font-medium transition-colors hover:text-gold text-charcoal flex items-center"
-            >
-              <User size={20} className="mr-2" />
+            <Link to="/auth" className="hover:text-gold transition-colors">
               Sign In
             </Link>
           )}
+          <ModeToggle />
+        </div>
+
+        {/* Mobile Menu */}
+        <div className="md:hidden">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64">
+              <SheetHeader className="text-left">
+                <SheetTitle>Menu</SheetTitle>
+                <SheetDescription>
+                  Explore Saaral
+                </SheetDescription>
+              </SheetHeader>
+              <div className="py-4">
+                <Link
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-2 text-base"
+                >
+                  <Home className="h-5 w-5" />
+                  Home
+                </Link>
+                <Link
+                  to="/collections"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-2 text-base"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Collections
+                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      to="/saved-items"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 py-2 text-base"
+                    >
+                      <Heart className="h-5 w-5" />
+                      Saved Items
+                    </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 py-2 text-base"
+                    >
+                      <User className="h-5 w-5" />
+                      Profile
+                    </Link>
+                    <Link
+                      to="/orders"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 py-2 text-base"
+                    >
+                      <Package className="h-5 w-5" />
+                      Orders
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-2 py-2 text-base"
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <Link
+                    to="/auth"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 py-2 text-base"
+                  >
+                    <User className="h-5 w-5" />
+                    Sign In
+                  </Link>
+                )}
+              </div>
+              <ModeToggle />
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </nav>
