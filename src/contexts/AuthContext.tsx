@@ -146,10 +146,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (userId: string) => {
     try {
-      // Fix TypeScript error by using a properly typed object parameter for RPC call
-      const { data, error } = await supabase.rpc('get_profile_by_id', { 
-        user_id: userId 
-      });
+      const { data, error } = await supabase.rpc(
+        'get_profile_by_id', 
+        { user_id: userId }
+      );
       
       if (data && Array.isArray(data) && data.length > 0) {
         setProfile(data[0]);

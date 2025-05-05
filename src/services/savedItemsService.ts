@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { addToCart } from './cartService';
 import { toast } from 'sonner';
@@ -8,7 +7,7 @@ export const getSavedItems = async (userId: string) => {
     // Fix TypeScript error by using properly typed object parameter
     const { data, error } = await supabase.rpc(
       'get_saved_items_with_products',
-      { user_id: userId }
+      {}
     );
 
     if (error) {

@@ -69,6 +69,101 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          price: number
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          price: number
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          price?: number
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          billing_address: Json | null
+          created_at: string
+          currency: string
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          receipt_id: string
+          shipping_address: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          receipt_id: string
+          shipping_address: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          receipt_id?: string
+          shipping_address?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           additional_images: string[] | null
@@ -188,7 +283,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_receipt_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_orders_with_items: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          amount: number
+          status: string
+          payment_id: string
+          order_id: string
+          receipt_id: string
+          currency: string
+          shipping_address: Json
+          billing_address: Json
+          created_at: string
+          updated_at: string
+          items: Json
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
