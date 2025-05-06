@@ -9,19 +9,16 @@ export const useProducts = () => {
   const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: getProducts,
-    staleTime: 0, // Set to 0 to refetch on each mount
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
   });
 
+  // Force refetch on component mount
   useEffect(() => {
-    // Force refetch on component mount to ensure fresh data
     refetch();
-    
-    // Also invalidate the query cache on mount to force a refetch
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-  }, [refetch, queryClient]);
+  }, [refetch]);
 
   return {
     products: products || [],

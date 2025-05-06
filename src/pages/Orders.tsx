@@ -10,7 +10,6 @@ import { LucideLoader2, PackageCheck, ShoppingBag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Json } from '@/integrations/supabase/types';
 
 interface OrderItem {
   id: string;

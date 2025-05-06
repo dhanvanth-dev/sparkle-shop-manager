@@ -17,6 +17,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import SavedItems from "./pages/SavedItems";
 import Profile from "./pages/Profile";
+import Orders from "./pages/Orders";
 
 // Admin routes
 import Login from "./pages/admin/Login";
@@ -31,6 +32,9 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: true,
       staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
     },
   },
 });
@@ -57,6 +61,7 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/saved-items" element={<SavedItems />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/orders" element={<Orders />} />
               
               {/* Admin routes */}
               <Route path="/admin/login" element={<Login />} />
