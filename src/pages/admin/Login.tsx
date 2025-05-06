@@ -20,19 +20,21 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [adminChecked, setAdminChecked] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
   useEffect(() => {
     // If user is already authenticated and is admin, redirect to dashboard
-    if (user && isAdmin) {
+    if (user && isAdmin && adminChecked) {
       console.log("Login page: User is authenticated and is admin, redirecting to dashboard");
       navigate('/admin/dashboard', { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, navigate, adminChecked]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    setAdminChecked(false);
     try {
       console.log("Attempting admin login with:", data.email);
       
@@ -51,22 +53,25 @@ const Login: React.FC = () => {
         await supabase.auth.signOut();
         toast.error('Not authorized as admin');
         setIsLoading(false);
+        setAdminChecked(true);
         return;
       }
 
       // Successfully authenticated as admin
       toast.success('Admin login successful');
+      setAdminChecked(true);
       
-      // Explicitly navigate to dashboard with a delay to ensure state is updated
+      // Force navigation with a small delay to ensure state updates
       console.log("Admin status verified, redirecting to dashboard");
       setTimeout(() => {
         navigate('/admin/dashboard', { replace: true });
         setIsLoading(false);
-      }, 800); // Slightly longer delay to ensure state updates properly
+      }, 1000); 
     } catch (error: any) {
       toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
       setIsLoading(false);
+      setAdminChecked(true);
     }
   };
 

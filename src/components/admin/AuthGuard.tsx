@@ -21,17 +21,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       if (!loading) {
         if (!user) {
           console.log("No user, redirecting to login");
-          navigate('/admin/login');
+          navigate('/admin/login', { replace: true });
         } else if (!isAdmin) {
           // User is logged in but not an admin
           console.log("User is not admin, redirecting to home");
-          navigate('/');
+          navigate('/', { replace: true });
         } else {
           console.log("User is authenticated and admin");
         }
         setLocalLoading(false);
       }
-    }, 300); // Short delay to allow auth state to settle
+    }, 500); // Slightly longer delay to allow auth state to settle
     
     return () => clearTimeout(timer);
   }, [user, loading, navigate, isAdmin]);

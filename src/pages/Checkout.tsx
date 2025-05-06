@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -28,9 +29,10 @@ const Checkout: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [subtotal, setSubtotal] = useState(0);
-  const [shipping, setShipping] = useState(10);
+  const [shipping, setShipping] = useState(100); // Changed to 100 INR
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
+  const [processingOrder, setProcessingOrder] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<ShippingFormData>();
 
@@ -67,7 +69,7 @@ const Checkout: React.FC = () => {
 
   const calculateTotals = (items: CartItem[]) => {
     const newSubtotal = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-    const newTax = newSubtotal * 0.08; // 8% tax
+    const newTax = Math.round(newSubtotal * 0.18); // 18% GST
     const newTotal = newSubtotal + shipping + newTax;
 
     setSubtotal(newSubtotal);
@@ -76,20 +78,26 @@ const Checkout: React.FC = () => {
   };
 
   const onSubmit = (data: ShippingFormData) => {
-    console.log('Shipping Information:', data);
-    console.log('Order Summary:', {
-      subtotal,
-      shipping,
-      tax,
-      total,
-      items: cartItems.map(item => ({
-        name: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price
-      }))
-    });
+    setProcessingOrder(true);
     
-    navigate('/orders');
+    // Simulate order processing
+    setTimeout(() => {
+      console.log('Shipping Information:', data);
+      console.log('Order Summary:', {
+        subtotal,
+        shipping,
+        tax,
+        total,
+        items: cartItems.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        }))
+      });
+      
+      toast.success('Order placed successfully!');
+      navigate('/orders');
+    }, 2000);
   };
 
   if (loading || (user && isLoading)) {
@@ -97,6 +105,23 @@ const Checkout: React.FC = () => {
       <Layout>
         <div className="min-h-screen flex items-center justify-center pt-20">
           <LucideLoader2 className="h-8 w-8 animate-spin text-gold" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (cartItems.length === 0 && !isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 pt-28 pb-16 text-center">
+          <h1 className="text-3xl font-serif mb-8">Your Cart is Empty</h1>
+          <p className="mb-8">You don't have any items in your cart.</p>
+          <Button 
+            className="bg-gold hover:bg-gold-dark"
+            onClick={() => navigate('/collections')}
+          >
+            Continue Shopping
+          </Button>
         </div>
       </Layout>
     );
@@ -113,7 +138,7 @@ const Checkout: React.FC = () => {
               <CardTitle>Shipping Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
@@ -151,17 +176,13 @@ const Checkout: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">Zip Code</Label>
+                  <Label htmlFor="zipCode">PIN Code</Label>
                   <Input
                     id="zipCode"
-                    {...register('zipCode', { required: 'Zip code is required' })}
+                    {...register('zipCode', { required: 'PIN code is required' })}
                   />
                   {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode.message}</p>}
                 </div>
-
-                <Button type="submit" className="w-full bg-gold hover:bg-gold-dark">
-                  Continue to Payment
-                </Button>
               </form>
             </CardContent>
           </Card>
@@ -201,7 +222,7 @@ const Checkout: React.FC = () => {
                   <span>{formatCurrency(shipping)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax:</span>
+                  <span>GST (18%):</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <Separator />
@@ -209,8 +230,20 @@ const Checkout: React.FC = () => {
                   <span>Total:</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
-                <Button className="w-full bg-gold hover:bg-gold-dark">
-                  Place Order
+                <Button 
+                  form="checkout-form" 
+                  type="submit" 
+                  className="w-full bg-gold hover:bg-gold-dark"
+                  disabled={processingOrder}
+                >
+                  {processingOrder ? (
+                    <>
+                      <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Place Order'
+                  )}
                 </Button>
                 <div className="mt-4 flex items-center text-sm text-yellow-600 bg-yellow-50 p-3 rounded-md">
                   <AlertTriangle size={16} className="mr-2 flex-shrink-0" />

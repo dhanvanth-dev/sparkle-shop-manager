@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           console.log("No active session found");
           setUser(null);
+          setIsAdmin(false);
         }
       } catch (error) {
         console.error('Session load error:', error);
@@ -59,6 +60,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear all user data on sign out
+        setUser(null);
+        setProfile(null);
+        setIsAdmin(false);
+        console.log('User signed out, state cleared');
+        return;
+      }
       
       if (session?.user) {
         setUser(session.user);
@@ -113,12 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const adminStatus = await checkAdminStatus(data.user.email);
           setIsAdmin(adminStatus);
           console.log("Admin status set to:", adminStatus);
-          
-          // If user is admin and trying to log in via the admin login page
-          if (adminStatus && location.pathname === '/admin/login') {
-            console.log("Admin login successful, redirecting to dashboard");
-            navigate('/admin/dashboard');
-          }
         }
       } else {
         await supabase.auth.signInWithOAuth({
@@ -164,11 +168,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear all state
       setUser(null);
       setProfile(null);
       setIsAdmin(false);
+      
+      // Clear any stored tokens
       localStorage.removeItem('supabase.auth.token');
+      
       toast.success('Logged out successfully');
+      
+      // Force navigation to auth page
       navigate('/auth');
       return;
     } catch (error) {

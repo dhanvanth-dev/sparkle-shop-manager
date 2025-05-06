@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Heart, ShoppingCart } from 'lucide-react';
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 const ProductDetail: React.FC = () => {
@@ -21,6 +22,8 @@ const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -113,15 +116,7 @@ const ProductDetail: React.FC = () => {
       // Optimistically update the UI
       setSaved(false);
       
-      // Call the unsaveItem function
-      // Assuming you have the saved item's ID, you'll need to fetch it first or have it stored
-      // For simplicity, this example assumes you have a way to get the saved item ID
-      // const savedItemId = ...; // Fetch or retrieve the saved item ID
-      
-      // If you don't have the saved item ID, you might need to refetch the saved items
-      // or adjust your logic accordingly
-      
-      // await unsaveItem(savedItemId);
+      await unsaveItem(user.id, product.id);
       toast.success('Item removed from saved items');
     } catch (error) {
       console.error('Error removing item:', error);
@@ -129,6 +124,72 @@ const ProductDetail: React.FC = () => {
       // Revert the UI update if the operation fails
       setSaved(true);
     }
+  };
+
+  const handleNextImage = () => {
+    if (!product) return;
+    
+    const totalImages = product.additional_images?.length + 1 || 1;
+    if (showVideo) {
+      setShowVideo(false);
+      setCurrentImageIndex(0);
+    } else {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % totalImages);
+    }
+  };
+
+  const handlePreviousImage = () => {
+    if (!product) return;
+    
+    const totalImages = product.additional_images?.length + 1 || 1;
+    if (showVideo) {
+      setShowVideo(false);
+      setCurrentImageIndex(totalImages - 1);
+    } else {
+      setCurrentImageIndex((prevIndex) => (prevIndex - 1 + totalImages) % totalImages);
+    }
+  };
+
+  const handleToggleVideo = () => {
+    if (product?.video_url) {
+      setShowVideo(!showVideo);
+    }
+  };
+
+  const getCurrentImage = () => {
+    if (!product) return null;
+    
+    if (showVideo) {
+      return (
+        <div className="aspect-video w-full h-full flex items-center justify-center bg-black">
+          <iframe
+            src={product.video_url}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
+      );
+    }
+    
+    if (currentImageIndex === 0) {
+      return (
+        <img
+          src={product.image_url || 'https://placehold.co/400x400?text=No+Image'}
+          alt={product.name}
+          className="w-full h-full object-contain rounded-t-lg"
+        />
+      );
+    }
+    
+    const additionalImage = product.additional_images?.[currentImageIndex - 1];
+    return additionalImage ? (
+      <img
+        src={additionalImage}
+        alt={`${product.name} - Image ${currentImageIndex}`}
+        className="w-full h-full object-contain rounded-t-lg"
+      />
+    ) : null;
   };
 
   if (loading) {
@@ -172,11 +233,50 @@ const ProductDetail: React.FC = () => {
       <div className="container mx-auto px-4 pt-28 pb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Card className="overflow-hidden">
-            <img
-              src={product.image_url || 'https://placehold.co/400x400?text=No+Image'}
-              alt={product.name}
-              className="w-full h-full object-cover rounded-t-lg"
-            />
+            <div className="relative h-[450px]">
+              {getCurrentImage()}
+              
+              {/* Navigation arrows */}
+              <div className="absolute inset-0 flex items-center justify-between p-4">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="bg-white/70 hover:bg-white"
+                  onClick={handlePreviousImage}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="bg-white/70 hover:bg-white"
+                  onClick={handleNextImage}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              {/* Thumbnail indicator */}
+              <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center space-x-2">
+                <div 
+                  className={`w-2 h-2 rounded-full ${currentImageIndex === 0 && !showVideo ? 'bg-gold' : 'bg-gray-400'}`}
+                  onClick={() => { setCurrentImageIndex(0); setShowVideo(false); }}
+                />
+                {product?.additional_images?.map((_, index) => (
+                  <div 
+                    key={index}
+                    className={`w-2 h-2 rounded-full ${currentImageIndex === index + 1 && !showVideo ? 'bg-gold' : 'bg-gray-400'}`}
+                    onClick={() => { setCurrentImageIndex(index + 1); setShowVideo(false); }}
+                  />
+                ))}
+                {product?.video_url && (
+                  <div 
+                    className={`w-2 h-2 rounded-full ${showVideo ? 'bg-gold' : 'bg-gray-400'}`}
+                    onClick={handleToggleVideo}
+                  />
+                )}
+              </div>
+            </div>
           </Card>
           <div>
             <CardHeader>
