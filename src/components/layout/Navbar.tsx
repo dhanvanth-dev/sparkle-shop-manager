@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ShoppingBag, Heart, User, Menu, Package, Home, LayoutDashboard, LogOut } from 'lucide-react';
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { ShoppingBag, Heart, User, Menu, Package, Home, PackagePlus, LayoutDashboard, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Navbar: React.FC = () => {
@@ -23,40 +23,39 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-white/80 backdrop-blur-lg border-b sticky top-0 z-50">
+    <nav className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo and Brand */}
-        <Link to="/" className="text-2xl font-bold text-gray-800 font-serif">
+        <Link to="/" className="text-2xl font-bold font-serif">
           Saaral
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="hover:text-gold transition-colors border-b-2 border-gold pb-1 text-gray-800">
+        <div className="hidden md:flex items-center gap-4">
+          <Link to="/" className="hover:text-gold transition-colors">
             Home
           </Link>
-          <Link to="/collections" className="hover:text-gold transition-colors text-gray-800">
+          <Link to="/collections" className="hover:text-gold transition-colors">
             Collections
           </Link>
-          <Link to="/about" className="hover:text-gold transition-colors text-gray-800">
-            About Us
-          </Link>
-        </div>
-
-        {/* Desktop Right Section */}
-        <div className="hidden md:flex items-center">
           {user ? (
             <>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Link to="/saved-items" className="hover:text-gold transition-colors">
+                Saved Items
+              </Link>
+              <Link to="/profile" className="hover:text-gold transition-colors">
+                Profile
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
                 Sign Out
               </Button>
             </>
           ) : (
-            <Link to="/auth" className="flex items-center text-gray-800">
-              <User className="h-5 w-5 mr-1" />
+            <Link to="/auth" className="hover:text-gold transition-colors">
               Sign In
             </Link>
           )}
+          <ModeToggle />
         </div>
 
         {/* Mobile Menu */}
@@ -90,14 +89,6 @@ const Navbar: React.FC = () => {
                 >
                   <ShoppingBag className="h-5 w-5" />
                   Collections
-                </Link>
-                <Link
-                  to="/about"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-base"
-                >
-                  <User className="h-5 w-5" />
-                  About Us
                 </Link>
                 {user ? (
                   <>
@@ -151,6 +142,7 @@ const Navbar: React.FC = () => {
                   </Link>
                 )}
               </div>
+              <ModeToggle />
             </SheetContent>
           </Sheet>
         </div>

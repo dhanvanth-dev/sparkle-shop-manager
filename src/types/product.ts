@@ -14,7 +14,6 @@ export interface Product {
   is_sold_out: boolean;
   created_at: string;
   updated_at: string;
-  in_stock?: boolean; // Added for backward compatibility
 }
 
 export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
