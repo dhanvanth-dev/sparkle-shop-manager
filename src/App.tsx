@@ -1,12 +1,10 @@
 
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ThemeProvider } from "@/components/theme-provider";
 import AppInitializer from "./pages/AppInitializer";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -19,7 +17,6 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import SavedItems from "./pages/SavedItems";
 import Profile from "./pages/Profile";
-import Orders from "./pages/Orders";
 
 // Admin routes
 import Login from "./pages/admin/Login";
@@ -38,80 +35,60 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => {
-  // Start product refresh when app loads
-  React.useEffect(() => {
-    // Import dynamically to avoid circular dependencies
-    import('./services/productService').then(({ startProductsRefresh }) => {
-      startProductsRefresh(30); // Refresh every 30 minutes
-    });
-
-    return () => {
-      // Clean up on unmount
-      import('./services/productService').then(({ stopProductsRefresh }) => {
-        stopProductsRefresh();
-      });
-    };
-  }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <BrowserRouter>
-            <AuthProvider>
-              <AppInitializer>
-                <Toaster />
-                <Sonner />
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<Home />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/collections" element={<Collections />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  
-                  {/* User authenticated routes */}
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/saved-items" element={<SavedItems />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/orders" element={<Orders />} />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin/login" element={<Login />} />
-                  <Route path="/admin/dashboard" element={
-                    <AuthGuard>
-                      <Dashboard />
-                    </AuthGuard>
-                  } />
-                  <Route path="/admin/products" element={
-                    <AuthGuard>
-                      <ProductsList />
-                    </AuthGuard>
-                  } />
-                  <Route path="/admin/products/new" element={
-                    <AuthGuard>
-                      <CreateProduct />
-                    </AuthGuard>
-                  } />
-                  <Route path="/admin/products/edit/:id" element={
-                    <AuthGuard>
-                      <EditProduct />
-                    </AuthGuard>
-                  } />
-                  
-                  {/* Catch-all route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AppInitializer>
-            </AuthProvider>
-          </BrowserRouter>
-        </ThemeProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppInitializer>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/collections" element={<Collections />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              
+              {/* User authenticated routes */}
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/saved-items" element={<SavedItems />} />
+              <Route path="/profile" element={<Profile />} />
+              
+              {/* Admin routes */}
+              <Route path="/admin/login" element={<Login />} />
+              <Route path="/admin/dashboard" element={
+                <AuthGuard>
+                  <Dashboard />
+                </AuthGuard>
+              } />
+              <Route path="/admin/products" element={
+                <AuthGuard>
+                  <ProductsList />
+                </AuthGuard>
+              } />
+              <Route path="/admin/products/new" element={
+                <AuthGuard>
+                  <CreateProduct />
+                </AuthGuard>
+              } />
+              <Route path="/admin/products/edit/:id" element={
+                <AuthGuard>
+                  <EditProduct />
+                </AuthGuard>
+              } />
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppInitializer>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
