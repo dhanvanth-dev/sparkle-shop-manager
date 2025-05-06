@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from '@/services/authService';
 import { LucideLayoutDashboard, LucidePackagePlus, LucideLogOut } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,21 +13,29 @@ interface AdminLayoutProps {
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/admin/login');
+    try {
+      await signOut();
+      toast.success('Logged out successfully');
+      navigate('/admin/login', { replace: true });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
   };
 
   // Redirect if not admin
-  React.useEffect(() => {
-    if (!isAdmin) {
-      navigate('/');
+  useEffect(() => {
+    console.log("AdminLayout auth check:", { isAuthenticated: !!user, isAdmin });
+    if (!loading && (!user || !isAdmin)) {
+      console.log("Not authenticated as admin, redirecting");
+      navigate('/admin/login', { replace: true });
     }
-  }, [isAdmin, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
-  if (!user || !isAdmin) {
+  if (loading || !user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>

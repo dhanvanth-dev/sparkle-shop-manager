@@ -34,6 +34,8 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
+      console.log("Attempting admin login with:", data.email);
+      
       // Use the signIn method from AuthContext
       await signIn(data.email, data.password);
       
@@ -55,11 +57,12 @@ const Login: React.FC = () => {
       // Successfully authenticated as admin
       toast.success('Admin login successful');
       
-      // Short delay to allow state to update
+      // Explicitly navigate to dashboard with a delay to ensure state is updated
+      console.log("Admin status verified, redirecting to dashboard");
       setTimeout(() => {
         navigate('/admin/dashboard', { replace: true });
         setIsLoading(false);
-      }, 500);
+      }, 800); // Slightly longer delay to ensure state updates properly
     } catch (error: any) {
       toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
