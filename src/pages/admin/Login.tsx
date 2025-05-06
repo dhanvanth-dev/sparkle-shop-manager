@@ -33,29 +33,36 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      // Use the signIn method from AuthContext
-      await signIn(data.email, data.password);
+      console.log("Attempting admin login with:", data.email);
       
-      // Check admin status specifically for this login
-      const { data: adminData, error: adminError } = await supabase
+      // Check if the email exists in admins table first
+      const { data: adminData, error: adminCheckError } = await supabase
         .from('admins')
         .select('email')
         .eq('email', data.email)
         .maybeSingle();
-
-      if (adminError || !adminData) {
-        // If not an admin, sign out and show error
-        await supabase.auth.signOut();
-        toast.error('Not authorized as admin');
+      
+      if (adminCheckError) {
+        console.error("Error checking admin status:", adminCheckError);
+        toast.error("Error verifying admin status");
         setIsLoading(false);
         return;
       }
-
-      // Successfully authenticated as admin
-      toast.success('Admin login successful');
-      navigate('/admin/dashboard', { replace: true });
+      
+      if (!adminData) {
+        console.log("Not an admin email:", data.email);
+        toast.error("Not authorized as admin");
+        setIsLoading(false);
+        return;
+      }
+      
+      // If admin email is valid, proceed with sign in
+      console.log("Admin email verified, proceeding with login");
+      await signIn(data.email, data.password);
+      
+      // The signIn method in AuthContext will handle redirection
     } catch (error: any) {
-      toast.error('Login failed. Please try again.');
+      toast.error('Login failed: ' + (error.message || 'Unknown error'));
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);

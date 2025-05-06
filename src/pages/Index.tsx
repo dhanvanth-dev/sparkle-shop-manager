@@ -14,7 +14,8 @@ const Index = () => {
               <NavigationMenuItem>
                 <NavigationMenuLink
                   className={cn(
-                    "text-lg font-medium transition-colors hover:text-primary"
+                    "text-lg font-medium transition-colors hover:text-gold",
+                    "border-b-2 border-gold pb-1" // Added underline for active item
                   )}
                 >
                   Home
@@ -23,16 +24,16 @@ const Index = () => {
               <NavigationMenuItem>
                 <NavigationMenuLink
                   className={cn(
-                    "text-lg font-medium transition-colors hover:text-primary"
+                    "text-lg font-medium transition-colors hover:text-gold"
                   )}
                 >
-                  Collection
+                  Collections
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink
                   className={cn(
-                    "text-lg font-medium transition-colors hover:text-primary"
+                    "text-lg font-medium transition-colors hover:text-gold"
                   )}
                 >
                   About
@@ -43,18 +44,20 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-24 md:pt-32 pb-16 md:pb-24">
-        <div className="container mx-auto px-4">
+      {/* Hero Section with Background Image */}
+      <section className="pt-24 md:pt-32 pb-16 md:pb-24 relative">
+        <div className="absolute inset-0 bg-[url('/lovable-uploads/e1e906ce-bd9e-4436-be72-7f1b0be49e13.png')] bg-cover bg-center"></div>
+        <div className="absolute inset-0 bg-black/20"></div> {/* Overlay to ensure text is readable */}
+        <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent animate-fade-in">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white animate-fade-in">
               Timeless Elegance
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-8 animate-fade-in delay-150">
-              Discover our exquisite collection of handcrafted jewelry pieces that tell your unique story.
+            <p className="text-lg md:text-xl text-white mb-8 animate-fade-in delay-150">
+              Crafted for You
             </p>
-            <button className="bg-primary text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-primary/90 transition-all transform hover:scale-105 animate-fade-in delay-300">
-              Explore Collection
+            <button className="bg-amber-600 text-white px-8 py-3 rounded-md text-lg font-medium hover:bg-amber-700 transition-all transform hover:scale-105 animate-fade-in delay-300">
+              Explore Collections
             </button>
           </div>
         </div>
