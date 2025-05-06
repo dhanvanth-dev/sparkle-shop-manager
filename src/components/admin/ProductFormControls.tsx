@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFormContext } from 'react-hook-form';
-import { Label } from '@/components/ui/label';
 import ProductImageUpload from './ProductImageUpload';
 import { ProductFormValues } from '@/schemas/product-schema';
 
@@ -150,8 +149,9 @@ const ProductFormControls: React.FC = () => {
         render={({ field }) => (
           <FormItem>
             <ProductImageUpload 
-              initialImage={field.value}
-              onImageUploaded={(url) => field.onChange(url)}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
             />
             <FormMessage />
           </FormItem>

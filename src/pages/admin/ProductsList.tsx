@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { packagePlus, Pencil, Trash2, Search, PackagePlus } from 'lucide-react';
+import { PackagePlus, Pencil, Trash2, Search } from 'lucide-react';
 import useProducts from '@/hooks/useProducts';
 import { useQueryClient } from '@tanstack/react-query';
 import { deleteProduct } from '@/services/productService';
@@ -114,8 +114,8 @@ const ProductsList: React.FC = () => {
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>${product.price.toFixed(2)}</TableCell>
                         <TableCell>
-                          <Badge variant={product.in_stock ? "default" : "destructive"}>
-                            {product.in_stock ? "In Stock" : "Out of Stock"}
+                          <Badge variant={!product.is_sold_out ? "default" : "destructive"}>
+                            {!product.is_sold_out ? "In Stock" : "Out of Stock"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">

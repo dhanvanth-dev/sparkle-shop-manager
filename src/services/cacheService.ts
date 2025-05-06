@@ -5,6 +5,7 @@
 
 // Constants
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const PRODUCTS_CACHE_KEY = 'products';
 
 // Type for cache items
 interface CacheItem<T> {
@@ -50,6 +51,26 @@ export async function getCachedData<T>(
     
     throw error;
   }
+}
+
+/**
+ * Get products from cache
+ */
+export function getCachedProducts() {
+  const cachedItem = getCacheItem<any>(PRODUCTS_CACHE_KEY);
+  if (cachedItem && !isCacheExpired(cachedItem.timestamp)) {
+    return cachedItem.data;
+  }
+  return null;
+}
+
+/**
+ * Set products in cache
+ * @param data Product data to cache
+ * @param duration Cache duration in milliseconds
+ */
+export function setCachedProducts(data: any, duration?: number) {
+  setCacheItem(PRODUCTS_CACHE_KEY, data);
 }
 
 /**
