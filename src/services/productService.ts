@@ -1,160 +1,202 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Product, ProductFormData, assertIsProduct, assertIsProductArray } from '@/types/product';
+import { Product } from '@/types/product';
 import { getCachedData, refreshCachedData } from './cacheService';
+
+const CACHE_KEY_PRODUCTS = 'products';
+const CACHE_KEY_FEATURED = 'featured_products';
+
+// Keep track of refresh timers
+interface WindowWithTimers extends Window {
+  productsRefreshInterval?: NodeJS.Timeout;
+}
+
+const windowWithTimers = window as WindowWithTimers;
 
 /**
  * Get all products
  */
-export const getProducts = async (): Promise<Product[]> => {
-  return getCachedData('products', fetchProductsFromAPI);
+export const getProducts = async (forceRefresh = false): Promise<Product[]> => {
+  try {
+    if (forceRefresh) {
+      return await refreshCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+    }
+
+    return await getCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+  } catch (error) {
+    console.error('Error getting products:', error);
+    throw error;
+  }
 };
 
 /**
- * Fetch products directly from API, bypassing cache
+ * Fetch fresh product data from the database
  */
-async function fetchProductsFromAPI(): Promise<Product[]> {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      throw new Error(error.message);
-    }
-    
-    // Assert the type safety
-    assertIsProductArray(data);
-    return data as Product[];
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw error;
-  }
-}
-
-/**
- * Get a product by ID
- */
-export const getProductById = async (id: string): Promise<Product | null> => {
+const fetchProductsFromDb = async (): Promise<Product[]> => {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .eq('id', id)
-    .single() as any;
+    .order('created_at', { ascending: false });
 
-  if (error || !data) {
-    console.error('Error fetching product:', error);
-    return null;
+  if (error) {
+    throw error;
   }
 
-  assertIsProduct(data);
-  return data as Product;
+  return data as Product[];
+};
+
+/**
+ * Get featured products
+ */
+export const getFeaturedProducts = async (forceRefresh = false): Promise<Product[]> => {
+  try {
+    if (forceRefresh) {
+      return await refreshCachedData(CACHE_KEY_FEATURED, fetchFeaturedProductsFromDb);
+    }
+
+    return await getCachedData(CACHE_KEY_FEATURED, fetchFeaturedProductsFromDb);
+  } catch (error) {
+    console.error('Error getting featured products:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch fresh featured product data from the database
+ */
+const fetchFeaturedProductsFromDb = async (): Promise<Product[]> => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('is_featured', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as Product[];
+};
+
+/**
+ * Get a single product by ID
+ */
+export const getProductById = async (id: string): Promise<Product | null> => {
+  try {
+    // First check our local cache
+    const products = await getCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+    const cachedProduct = products.find(p => p.id === id);
+    
+    if (cachedProduct) {
+      return cachedProduct;
+    }
+    
+    // If not in cache, fetch directly
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as Product;
+  } catch (error) {
+    console.error(`Error getting product ${id}:`, error);
+    throw error;
+  }
 };
 
 /**
  * Create a new product
  */
-export const createProduct = async (formData: ProductFormData): Promise<Product | null> => {
+export const createProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> => {
   const { data, error } = await supabase
     .from('products')
-    .insert(formData)
+    .insert(product)
     .select()
-    .single() as any;
-    
-  if (error || !data) {
-    console.error('Error creating product:', error);
-    return null;
+    .single();
+
+  if (error) {
+    throw error;
   }
 
-  assertIsProduct(data);
+  // Refresh the products cache
+  await refreshCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+  
   return data as Product;
 };
 
 /**
- * Update a product
+ * Update an existing product
  */
-export const updateProduct = async (id: string, formData: ProductFormData): Promise<Product | null> => {
+export const updateProduct = async (id: string, updates: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>): Promise<Product> => {
   const { data, error } = await supabase
     .from('products')
-    .update(formData)
+    .update(updates)
     .eq('id', id)
     .select()
-    .single() as any;
-  
-  if (error || !data) {
-    console.error('Error updating product:', error);
-    return null;
+    .single();
+
+  if (error) {
+    throw error;
   }
 
-  assertIsProduct(data);
+  // Refresh the products cache
+  await refreshCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+
   return data as Product;
 };
 
 /**
  * Delete a product
  */
-export const deleteProduct = async (id: string): Promise<boolean> => {
+export const deleteProduct = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from('products')
     .delete()
-    .eq('id', id) as any;
-  
-  return !error;
-};
+    .eq('id', id);
 
-/**
- * Upload a product image to Supabase Storage
- */
-export const uploadProductImage = async (file: File): Promise<string | null> => {
-  // Generate a unique file name
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-  const filePath = `products/${fileName}`;
-
-  // Upload the file to Supabase Storage
-  const { data, error } = await supabase
-    .storage
-    .from('products')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
-
-  if (error || !data?.path) {
-    console.error('Error uploading image:', error);
-    return null;
+  if (error) {
+    throw error;
   }
 
-  // Get the public URL
-  const { data: { publicUrl } } = supabase
-    .storage
-    .from('products')
-    .getPublicUrl(data.path);
-
-  return publicUrl;
+  // Refresh the products cache
+  await refreshCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
 };
 
 /**
  * Start periodic refresh of products data
+ * @param minutes How often to refresh data in minutes
  */
-export function startProductsRefresh(intervalMinutes = 30): void {
-  // Initial load
-  getProducts();
+export const startProductsRefresh = (minutes: number) => {
+  // Clear any existing interval first
+  stopProductsRefresh();
   
-  // Set up interval for periodic refresh
-  const intervalId = setInterval(() => {
-    refreshCachedData('products', () => fetchProductsFromAPI());
-  }, intervalMinutes * 60 * 1000);
+  // Set up new interval
+  const intervalMs = minutes * 60 * 1000;
   
-  // Store interval ID to be able to clear it later if needed
-  window.productsRefreshInterval = intervalId;
-}
+  windowWithTimers.productsRefreshInterval = setInterval(async () => {
+    console.log(`[Products] Refreshing product data (${new Date().toLocaleTimeString()})`);
+    try {
+      await refreshCachedData(CACHE_KEY_PRODUCTS, fetchProductsFromDb);
+      await refreshCachedData(CACHE_KEY_FEATURED, fetchFeaturedProductsFromDb);
+    } catch (error) {
+      console.error('Error during automated product refresh:', error);
+    }
+  }, intervalMs);
+  
+  console.log(`[Products] Auto-refresh scheduled every ${minutes} minutes`);
+};
 
 /**
  * Stop periodic refresh of products data
  */
-export function stopProductsRefresh(): void {
-  if (window && window.productsRefreshInterval) {
-    clearInterval(window.productsRefreshInterval);
+export const stopProductsRefresh = () => {
+  if (windowWithTimers.productsRefreshInterval) {
+    clearInterval(windowWithTimers.productsRefreshInterval);
+    windowWithTimers.productsRefreshInterval = undefined;
+    console.log('[Products] Auto-refresh stopped');
   }
-}
+};
