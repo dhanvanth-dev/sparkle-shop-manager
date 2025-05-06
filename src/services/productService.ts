@@ -1,79 +1,28 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Product, ProductFormData } from "@/types/product";
-import { getCachedData, getCachedProducts, setCachedProducts } from "./cacheService";
+import { Product, ProductCategory, ProductFormData } from "@/types/product";
+import { getCachedProducts, setCachedProducts } from "./cacheService";
 
 // Define a proper interface for global state
 interface WindowWithTimers extends Window {
-  productsRefreshInterval?: ReturnType<typeof setInterval>;
+  productsRefreshInterval?: number;
 }
 
-const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes in milliseconds
+declare const window: WindowWithTimers;
 
-// Get reference to window with the correct type
-const windowWithTimers = window as unknown as WindowWithTimers;
-
-export const startProductsRefresh = (intervalMinutes: number) => {
-  // Clear any existing interval
-  if (windowWithTimers.productsRefreshInterval) {
-    clearInterval(windowWithTimers.productsRefreshInterval);
-  }
-
-  // Set new interval
-  windowWithTimers.productsRefreshInterval = setInterval(() => {
-    console.log('Refreshing products from scheduled interval');
-    getProducts(true).catch(console.error);
-  }, intervalMinutes * 60 * 1000);
-
-  return () => {
-    if (windowWithTimers.productsRefreshInterval) {
-      clearInterval(windowWithTimers.productsRefreshInterval);
-      delete windowWithTimers.productsRefreshInterval;
-    }
-  };
-};
-
-export const stopProductsRefresh = () => {
-  if (windowWithTimers.productsRefreshInterval) {
-    clearInterval(windowWithTimers.productsRefreshInterval);
-    delete windowWithTimers.productsRefreshInterval;
-  }
-};
-
-// Add the uploadProductImage function
-export const uploadProductImage = async (file: File): Promise<string> => {
-  try {
-    const fileName = `${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, file);
-
-    if (error) {
-      throw error;
-    }
-
-    const { data: publicUrl } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(data.path);
-
-    return publicUrl.publicUrl;
-  } catch (error) {
-    console.error('Error uploading product image:', error);
-    throw error;
-  }
-};
+let refreshTimer: number | null = null;
 
 export const getProducts = async (forceRefresh = false): Promise<Product[]> => {
   try {
-    // Try to get from cache if not forcing refresh
+    // Try to get from cache first if not forced refresh
     if (!forceRefresh) {
-      const cachedData = getCachedProducts();
-      if (cachedData) {
-        console.log('Using cached products data');
-        return cachedData;
+      const cachedProducts = getCachedProducts();
+      if (cachedProducts && cachedProducts.length > 0) {
+        console.log('Using cached products');
+        return cachedProducts;
       }
     }
-
+    
     console.log('Fetching products from API');
     const { data, error } = await supabase
       .from('products')
@@ -84,22 +33,26 @@ export const getProducts = async (forceRefresh = false): Promise<Product[]> => {
       throw error;
     }
 
-    // Cache the new data
-    setCachedProducts(data as Product[], CACHE_EXPIRY);
+    // Cast to ensure type safety and validate the data
+    const products: Product[] = data.map((item) => ({
+      ...item,
+      category: item.category as ProductCategory, // Type assertion to ensure category is valid
+      gender: item.gender || 'unisex',
+      additional_images: item.additional_images || [],
+      in_stock: !item.is_sold_out, // For backward compatibility
+    }));
+
+    // Store in cache
+    setCachedProducts(products);
     
-    return data as Product[];
+    return products;
   } catch (error) {
     console.error('Error fetching products:', error);
-    // On error, return cached data if available
-    const cachedData = getCachedProducts();
-    if (cachedData) {
-      return cachedData;
-    }
-    throw error;
+    return [];
   }
 };
 
-export const getProductById = async (id: string): Promise<Product> => {
+export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -111,10 +64,21 @@ export const getProductById = async (id: string): Promise<Product> => {
       throw error;
     }
 
-    return data as Product;
+    if (!data) {
+      return null;
+    }
+
+    // Cast to ensure type safety
+    return {
+      ...data,
+      category: data.category as ProductCategory, // Type assertion to ensure category is valid
+      gender: data.gender || 'unisex',
+      additional_images: data.additional_images || [],
+      in_stock: !data.is_sold_out, // For backward compatibility
+    };
   } catch (error) {
-    console.error(`Error fetching product ${id}:`, error);
-    throw error;
+    console.error('Error fetching product by ID:', error);
+    return null;
   }
 };
 
@@ -122,48 +86,72 @@ export const createProduct = async (product: ProductFormData): Promise<Product |
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert([product])
-      .select()
-      .single();
+      .insert([{
+        ...product,
+        category: product.category as ProductCategory, // Type assertion for category
+      }])
+      .select();
 
     if (error) {
       throw error;
     }
 
-    // Clear cache to ensure fresh data on next fetch
-    setCachedProducts(null);
+    // Force refresh the products cache
+    await getProducts(true);
 
-    return data;
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    return {
+      ...data[0],
+      category: data[0].category as ProductCategory, // Type assertion to ensure category is valid
+      gender: data[0].gender || 'unisex',
+      additional_images: data[0].additional_images || [],
+      in_stock: !data[0].is_sold_out, // For backward compatibility
+    };
   } catch (error) {
     console.error('Error creating product:', error);
-    throw error;
+    return null;
   }
 };
 
-export const updateProduct = async (id: string, product: ProductFormData): Promise<Product | null> => {
+export const updateProduct = async (id: string, product: Partial<ProductFormData>): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .update(product)
+      .update({
+        ...product,
+        category: product.category as ProductCategory, // Type assertion for category
+      })
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       throw error;
     }
 
-    // Clear cache to ensure fresh data on next fetch
-    setCachedProducts(null);
+    // Force refresh the products cache
+    await getProducts(true);
 
-    return data;
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    return {
+      ...data[0],
+      category: data[0].category as ProductCategory, // Type assertion to ensure category is valid
+      gender: data[0].gender || 'unisex',
+      additional_images: data[0].additional_images || [],
+      in_stock: !data[0].is_sold_out, // For backward compatibility
+    };
   } catch (error) {
-    console.error(`Error updating product ${id}:`, error);
-    throw error;
+    console.error('Error updating product:', error);
+    return null;
   }
 };
 
-export const deleteProduct = async (id: string): Promise<void> => {
+export const deleteProduct = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('products')
@@ -173,11 +161,62 @@ export const deleteProduct = async (id: string): Promise<void> => {
     if (error) {
       throw error;
     }
-    
-    // Clear cache to ensure fresh data on next fetch
-    setCachedProducts(null);
+
+    // Force refresh the products cache
+    await getProducts(true);
+
+    return true;
   } catch (error) {
     console.error('Error deleting product:', error);
-    throw error;
+    return false;
+  }
+};
+
+export const uploadProductImage = async (file: File): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `product-images/${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return publicUrl?.publicUrl || null;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return null;
+  }
+};
+
+export const startProductsRefresh = (minutes: number = 30): void => {
+  console.log(`Setting up products refresh every ${minutes} minutes`);
+  
+  // Clear existing timer if any
+  stopProductsRefresh();
+  
+  // Set new timer
+  const interval = minutes * 60 * 1000;
+  window.productsRefreshInterval = window.setInterval(() => {
+    console.log('Auto-refreshing products...');
+    getProducts(true).then(() => {
+      console.log('Products refreshed successfully');
+    });
+  }, interval);
+};
+
+export const stopProductsRefresh = (): void => {
+  if (window.productsRefreshInterval) {
+    window.clearInterval(window.productsRefreshInterval);
+    delete window.productsRefreshInterval;
+    console.log('Products refresh timer stopped');
   }
 };
