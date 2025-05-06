@@ -26,6 +26,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     // If user is already authenticated and is admin, redirect to dashboard
     if (user && isAdmin) {
+      console.log("Login page: User is authenticated and is admin, redirecting to dashboard");
       navigate('/admin/dashboard', { replace: true });
     }
   }, [user, isAdmin, navigate]);
@@ -53,11 +54,15 @@ const Login: React.FC = () => {
 
       // Successfully authenticated as admin
       toast.success('Admin login successful');
-      navigate('/admin/dashboard', { replace: true });
+      
+      // Short delay to allow state to update
+      setTimeout(() => {
+        navigate('/admin/dashboard', { replace: true });
+        setIsLoading(false);
+      }, 500);
     } catch (error: any) {
       toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
-    } finally {
       setIsLoading(false);
     }
   };

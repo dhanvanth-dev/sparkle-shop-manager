@@ -33,14 +33,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
-
+        
         if (session?.user) {
+          console.log("Initial session load - User is logged in:", session.user.email);
+          setUser(session.user);
           await refreshProfile(session.user.id);
+          
           if (session.user.email) {
             const adminStatus = await checkAdminStatus(session.user.email);
+            console.log("Admin status check:", adminStatus);
             setIsAdmin(adminStatus);
           }
+        } else {
+          console.log("No active session found");
+          setUser(null);
         }
       } catch (error) {
         console.error('Session load error:', error);
@@ -51,18 +57,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('Auth state changed:', _event, session?.user?.email);
-      setUser(session?.user || null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       
       if (session?.user) {
+        setUser(session.user);
         await refreshProfile(session.user.id);
+        
         if (session.user.email) {
           const adminStatus = await checkAdminStatus(session.user.email);
-          console.log('Admin status:', adminStatus);
+          console.log('Admin status updated:', adminStatus);
           setIsAdmin(adminStatus);
         }
       } else {
+        setUser(null);
         setProfile(null);
         setIsAdmin(false);
       }
@@ -101,11 +109,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check admin status after login
         if (data?.user?.email) {
+          console.log("Sign-in successful, checking admin status");
           const adminStatus = await checkAdminStatus(data.user.email);
           setIsAdmin(adminStatus);
+          console.log("Admin status set to:", adminStatus);
           
           // If user is admin and trying to log in via the admin login page
           if (adminStatus && location.pathname === '/admin/login') {
+            console.log("Admin login successful, redirecting to dashboard");
             navigate('/admin/dashboard');
           }
         }
