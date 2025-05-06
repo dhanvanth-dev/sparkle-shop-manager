@@ -1,190 +1,161 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { getProducts, deleteProduct } from '@/services/productService';
-import { Product } from '@/types/product';
-import { LucideEdit, LucideTrash2, LucidePlusCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { packagePlus, Pencil, Trash2, Search, PackagePlus } from 'lucide-react';
+import useProducts from '@/hooks/useProducts';
+import { useQueryClient } from '@tanstack/react-query';
+import { deleteProduct } from '@/services/productService';
+import AdminLayout from '@/components/admin/AdminLayout';
 
 const ProductsList: React.FC = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data: products, isLoading, error, refetch } = useProducts();
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    setLoading(true);
+  const handleDelete = async (id: string) => {
     try {
-      const data = await getProducts();
-      setProducts(data);
-    } finally {
-      setLoading(false);
+      await deleteProduct(id);
+      toast.success('Product deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete product');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const success = await deleteProduct(id);
-    if (success) {
-      // Remove from local state
-      setProducts(products.filter(product => product.id !== id));
-    }
-    setProductToDelete(null);
+  const filteredProducts = products?.filter(product => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAddProduct = () => {
+    navigate('/admin/products/new');
+  };
+
+  const handleRefresh = () => {
+    const refreshPromise = refetch();
+    toast.promise(refreshPromise, {
+      loading: 'Refreshing products...',
+      success: 'Products refreshed',
+      error: 'Failed to refresh products',
+    });
   };
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Products</h1>
-        <Button 
-          onClick={() => navigate('/admin/products/new')}
-          className="bg-gold hover:bg-gold-dark"
-        >
-          <LucidePlusCircle className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
-      
       <Card>
-        {loading ? (
-          <div className="p-4 space-y-4">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-12 rounded" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              </div>
-            ))}
+        <CardHeader>
+          <CardTitle className="text-2xl">Products</CardTitle>
+          <CardDescription>Manage your product inventory</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between mb-4 flex-col md:flex-row gap-2">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleRefresh}>
+                Refresh
+              </Button>
+              <Button onClick={handleAddProduct}>
+                <PackagePlus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </div>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.length > 0 ? (
-                products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name}
-                          className="h-10 w-10 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">
-                          No image
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="capitalize">{product.category}</TableCell>
-                    <TableCell>${(product.price / 100).toFixed(2)}</TableCell>
-                    <TableCell>
-                      {product.is_sold_out ? (
-                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">
-                          Sold Out
-                        </span>
-                      ) : product.is_new_arrival ? (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                          New Arrival
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700">
-                          Active
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/admin/products/edit/${product.id}`)}
-                        >
-                          <LucideEdit className="h-4 w-4" />
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-500 hover:text-red-700"
-                              onClick={() => setProductToDelete(product.id)}
-                            >
-                              <LucideTrash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this product? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={() => setProductToDelete(null)}>
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-red-500 hover:bg-red-700"
-                                onClick={() => productToDelete && handleDelete(productToDelete)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+
+          {isLoading ? (
+            <div className="text-center py-8">Loading products...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-destructive">
+              Error loading products. Please try again.
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Image</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No products found. Add your first product to get started.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts && filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-10 h-10 object-cover rounded-md"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center">
+                              <PackagePlus className="w-5 h-5 text-slate-400" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>${product.price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.in_stock ? "default" : "destructive"}>
+                            {product.in_stock ? "In Stock" : "Out of Stock"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => handleDelete(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center">
+                        No products found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <div className="text-sm text-muted-foreground">
+            {filteredProducts ? filteredProducts.length : 0} products found
+          </div>
+        </CardFooter>
       </Card>
     </AdminLayout>
   );

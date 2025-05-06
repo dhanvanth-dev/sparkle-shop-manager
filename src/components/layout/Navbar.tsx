@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ModeToggle } from "@/components/ui/mode-toggle";
+import { ModeToggle } from "../ui/mode-toggle";
 import { ShoppingBag, Heart, User, Menu, Package, Home, PackagePlus, LayoutDashboard, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
